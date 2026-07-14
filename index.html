@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -10,214 +12,431 @@
 
 <style>
 
-
 body{
-  margin:0;
-  font-family:Arial;
-  background:#f5f5f5;
+margin:0;
+font-family:Arial;
+background:#f5f5f5;
 }
 
-.header{
-  background:#0d6efd;
-  color:white;
-  padding:15px;
-  text-align:center;
-  font-size:22px;
-  font-weight:bold;
+
+
+/* TOP */
+
+.top{
+position:relative;
+padding:12px;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+text-align:center;
 }
 
-.section{
-  display:none;
-  padding:15px;
+.logo{
+font-size:16px;
+font-weight:bold;
 }
 
-.section.active{
-  display:block;
+.profileBtn{
+
+position:absolute;
+
+right:10px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+width:36px;
+
+height:36px;
+
+border:none;
+
+border-radius:50%;
+
+background:#0d6efd;
+
+color:white;
+
+font-size:18px;
+
+cursor:pointer;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
 }
 
-.card{
-  background:white;
-  padding:15px;
-  margin-bottom:10px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+
+
+/* PROFILE MENU */
+
+#profileSection{
+
+display:none;
+
+position:fixed;
+
+right:0;
+
+top:0;
+
+width:290px;
+
+height:100vh;
+
+background:white;
+
+z-index:1000;
+
+box-shadow:-3px 0 12px rgba(0,0,0,.2);
+
+overflow:auto;
+
 }
 
-input,
-button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:8px;
-  border:none;
-  font-size:16px;
-  box-sizing:border-box;
+.profileHead{
+
+padding:24px;
+
+text-align:center;
+
+border-bottom:1px solid #eee;
+
 }
 
-input{
-  border:1px solid #ccc;
+.avatar{
+
+width:64px;
+
+height:64px;
+
+margin:auto;
+
+border-radius:50%;
+
+background:#0d6efd;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+font-size:30px;
+
+color:white;
+
 }
 
-button{
-  background:#0d6efd;
-  color:white;
-  font-weight:bold;
+.name{
+
+margin-top:10px;
+
+font-weight:bold;
+
 }
 
-button:hover{
-  opacity:0.9;
+.email{
+
+font-size:13px;
+
+color:#666;
+
+margin-top:5px;
+
 }
 
-.menuBtn{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  font-size:28px;
-  background:#0d6efd;
-  color:white;
-  border:none;
+.item{
+
+padding:16px;
+
+border-bottom:1px solid #eee;
+
+cursor:pointer;
+
 }
 
-.topBtns{
-  display:flex;
-  gap:10px;
-  margin-bottom:15px;
+.item:hover{
+
+background:#f7f7f7;
+
 }
 
-.topBtns button{
-  flex:1;
+.logout{
+
+color:#d00;
+
 }
 
-img{
-  max-width:100%;
+#profileOverlay{
+
+display:none;
+
+position:fixed;
+
+inset:0;
+
+background:rgba(0,0,0,.3);
+
+z-index:999;
+
+}
+
+
+
+/* PROFILE PAGE */
+
+#profilePage{
+
+display:none;
+
+padding:20px;
+
+}
+
+#profilePage img{
+
+width:80px;
+
+height:80px;
+
+border-radius:50%;
+
+}
+
+
+
+/* SWITCH */
+
+#switchModal{
+
+display:none;
+
+position:fixed;
+
+inset:0;
+
+background:rgba(0,0,0,.4);
+
+z-index:1100;
+
+}
+
+.switchBox{
+
+width:300px;
+
+margin-left:auto;
+
+height:100%;
+
+background:white;
+
+padding:16px;
+
+overflow:auto;
+
+}
+
+.switchBtn{
+
+width:100%;
+
+padding:12px;
+
+margin-top:10px;
+
+border:none;
+
+border-radius:8px;
+
+background:#0d6efd;
+
+color:white;
+
+}
+
+.closeBtn{
+
+background:#ddd;
+
+color:black;
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-<div style="
-  position:relative;
-  padding:6px 10px;
-  text-align:center;
-">
 
-  <div style="
-    font-size:15px;
-    font-weight:bold;
-  ">
-    DukaFlow
+
+<!-- TOP -->
+
+<div class="top">
+
+<div class="logo">
+DukaFlow
+</div>
+
+<button
+class="profileBtn"
+onclick="openProfile()">
+
+👤
+
+</button>
+
+</div>
+
+
+<div class="dashboardDock">
+
+<button
+class="dashboardButton"
+onclick="openDashboard()">
+
+<span>
+📊
+</span>
+
+<span>
+Dashboard
+</span>
+
+</button>
+
+</div>
+
+<!-- PROFILE MENU -->
+
+<div id="profileSection" class="profile-card">
+
+<div class="profileHead">
+
+<div class="avatar">
+👤
+</div>
+
+<div class="profileInfo">
+
+<div
+class="name"
+id="menuUserName">
+Guest
+</div>
+
+<div
+class="email"
+id="menuUserEmail">
+Not signed in
+</div>
+
+</div>
+
+</div>
+
+<div class="item" onclick="myProfile()">
+👤 My Profile
+</div>
+
+<div class="item" onclick="login()">
+🔐 Login
+</div>
+
+<div class="item" onclick="signup()">
+🆕 Sign Up
+</div>
+
+<div class="item" onclick="settings()">
+⚙️ Settings
+</div>
+
+<div class="item" onclick="help()">
+❓ Help
+</div>
+
+<div class="item logout" onclick="logout()">
+🚪 Logout
+</div>
+
+
+</div>
+
+
+
+<div
+id="profileOverlay"
+onclick="closeProfile()">
+</div>
+
+
+
+
+<!-- PROFILE PAGE -->
+
+<div id="profilePage" class="profile-page">
+
+  <div class="profile-card">
+
+    <img
+      id="avatar"
+      class="avatar-img"
+      src="https://i.imgur.com/1X4F3zM.png"
+      alt="avatar"
+    >
+
+    <h3 id="profileUserName" class="username">
+      Guest
+    </h3>
+
+    <p id="profileUserEmail" class="email">
+      Not signed in
+    </p>
+
   </div>
 
-  <button onclick="openSection('settingsSection')" style="
-    position:absolute;
-    right:8px;
-    top:50%;
-    transform:translateY(-50%);
-    width:30px;
-    height:30px;
-    border:none;
-    background:none;
-    font-size:18px;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  ">
-    ⚙️
-  </button>
+
+  <div class="menu">
+
+    <div onclick="editProfile()" class="item">
+      <span class="icon">✏️</span>
+      <span>Edit Profile</span>
+      <span class="arrow">›</span>
+    </div>
+
+    <div onclick="openSwitch()" class="item">
+      <span class="icon">🔄</span>
+      <span>Switch Account</span>
+      <span class="arrow">›</span>
+    </div>
+
+  </div>
 
 </div>
 
-  <button onclick="toggleMenu()" style="
-    position: absolute;
-    right: 6px;
-    background: none;
-    border: none;
-    font-size: 16px;
-    padding: 0;
-    cursor: pointer;
-  ">
-    ⋮
-  </button>
+<!-- SWITCH ACCOUNT -->
+<div id="switchModal">
 
-</div>
+  <div class="switchBox">
 
+    <h3>Switch Account</h3>
 
-<div id="menuDropdown" style="
-  display: none;
-  position: fixed;
-  top: 55px;
-  right: 10px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  z-index: 1001;
-  min-width: 140px;
-">
+    <div id="accountList"></div>
 
-  <div onclick="openSection('settingsSection')" style="
-    padding: 12px;
-    cursor: pointer;
-  ">⚙️ Settings</div>
+    <button class="switchBtn" onclick="openLogin()">
+      ➕ Add Account
+    </button>
 
-  <div onclick="openSection('profileSection')" style="
-    padding: 12px;
-    cursor: pointer;
-  ">👤 Profile</div>
+    <button class="switchBtn closeBtn" onclick="closeSwitch()">
+      Close
+    </button>
 
-  <div onclick="logout()" style="
-    padding: 12px;
-    cursor: pointer;
-  ">🚪 Logout</div>
-
-</div>
-
-<script>
-function toggleMenu(){
-
-  const menu = document.getElementById("menuDropdown");
-
-  menu.style.display =
-    menu.style.display === "block"
-      ? "none"
-      : "block";
-}
-</script>
-
-<div id="authScreen" style="
-padding:20px;
-height:100vh;
-display:flex;
-flex-direction:column;
-justify-content:center;
-">
-
-<h2 style="text-align:center">
-🔐 DukaFlow
-</h2>
-
-<input
-id="email"
-type="email"
-placeholder="Email">
-
-<input
-id="password"
-type="password"
-placeholder="Password">
-
-<button onclick="login()">
-Login
-</button>
-
-<button onclick="signup()">
-Create Account
-</button>
+  </div>
 
 </div>
 
@@ -226,419 +445,710 @@ Create Account
 <!-- DASHBOARD -->
 <!-- ========================= -->
 
-<div id="dashboardTop" style="display:none;">
-  
-  
-<div class="dashTable" style="
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+<div
+id="dashboardTop"
+
+style="
+display:none;
+padding:20px;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:white;
+z-index:1200;
+overflow:auto;
 ">
 
-  <div class="row" style="
-    display: flex;
-    justify-content: space-between;
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 8px;
-  ">
-    <span>Sales</span>
-    <span class="value" id="dashSales">21</span>
-  </div>
+<!-- HEADER -->
 
-  <div class="row" style="
-    display: flex;
-    justify-content: space-between;
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 8px;
-  ">
-    <span>Expenses</span>
-    <span class="value" id="dashExpenses">6</span>
-  </div>
-
-  <div class="row" style="
-    display: flex;
-    justify-content: space-between;
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 8px;
-  ">
-    <span>Emp Payroll</span>
-    <span class="value" id="dashEmpPayroll">5</span>
-  </div>
-
-  <div class="row" style="
-    display: flex;
-    justify-content: space-between;
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 8px;
-  ">
-    <span>Supplier Payroll</span>
-    <span class="value" id="dashSupplierPayroll">5</span>
-  </div>
-
-  <div class="row" style="
-    display: flex;
-    justify-content: space-between;
-    background: #d4edda;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: bold;
-  ">
-    <span>Profit</span>
-    <span class="value" id="dashProfit">5</span>
-  </div>
-
-</div>
-
-<div class="bottomNav" style="
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: white;
-  padding: 4px 0;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-  z-index: 1000;
+<div
+style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
 ">
 
-  <button onclick="openSection('productsSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">📦</div>
-    <div style="font-size:7px; margin-top:2px;">Products</div>
-  </button>
+<h2 style="margin:0;">
+📊 Dashboard
+</h2>
 
-  <button onclick="openSection('suppliersSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">🚚</div>
-    <div style="font-size:7px; margin-top:2px;">Suppliers</div>
-  </button>
+<button
+onclick="closeDashboard()"
 
-  <button onclick="openSection('employeesSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">👤</div>
-    <div style="font-size:7px; margin-top:2px;">Employees</div>
-  </button>
-
-  <button onclick="openSection('expensesSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">📄</div>
-    <div style="font-size:7px; margin-top:2px;">Expenses</div>
-  </button>
-
-</div>
-<div class="bottomNav" style="
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: white;
-  padding: 4px 0;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-  z-index: 1000;
+style="
+border:none;
+background:#eee;
+padding:10px 14px;
+border-radius:10px;
+font-size:16px;
 ">
 
-  <button onclick="openSection('productsSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">📦</div>
-    <div style="font-size:7px; margin-top:2px;">Products</div>
-  </button>
+✕
 
-  <button onclick="openSection('suppliersSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">🚚</div>
-    <div style="font-size:7px; margin-top:2px;">Suppliers</div>
-  </button>
-
-<!-- CUSTOMER ADDED -->
-  <button onclick="openSection('customersSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">🧑‍🤝‍🧑</div>
-    <div style="font-size:7px; margin-top:2px;">Customers</div>
-  </button>
-  <button onclick="openSection('employeesSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">👤</div>
-    <div style="font-size:7px; margin-top:2px;">Employees</div>
-  </button>
-
-  <button onclick="openSection('expensesSection')" style="
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-  ">
-    <div style="font-size:18px; line-height:18px;">📄</div>
-    <div style="font-size:7px; margin-top:2px;">Expenses</div>
-  </button>
-
-</div>
-
-</div>
-
-
-
-<!-- ========================= -->
-<!-- PRODUCTS SECTION -->
-<!-- ========================= -->
-<div id="productsSection" class="section">
-
-<button onclick="goBack()" style="
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  background: #fff;
-  border: none;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  z-index: 2000;
-">
-  🔙 
 </button>
+
+</div>
+
+
+
+<div
+class="dashTable"
+
+style="
+display:flex;
+flex-direction:column;
+gap:10px;
+">
+
+
+<div
+class="row"
+
+style="
+display:flex;
+justify-content:space-between;
+background:#f5f5f5;
+padding:12px;
+border-radius:12px;
+">
+
+<span>
+Sales
+</span>
+
+<span
+class="value"
+id="dashSales">
+
+21
+
+</span>
+
+</div>
+
+
+
+<div
+class="row"
+
+style="
+display:flex;
+justify-content:space-between;
+background:#f5f5f5;
+padding:12px;
+border-radius:12px;
+">
+
+<span>
+Expenses
+</span>
+
+<span
+class="value"
+id="dashExpenses">
+
+6
+
+</span>
+
+</div>
+
+
+
+<div
+class="row"
+
+style="
+display:flex;
+justify-content:space-between;
+background:#f5f5f5;
+padding:12px;
+border-radius:12px;
+">
+
+<span>
+Emp Payroll
+</span>
+
+<span
+class="value"
+id="dashEmpPayroll">
+
+5
+
+</span>
+
+</div>
+
+
+
+<div
+class="row"
+
+style="
+display:flex;
+justify-content:space-between;
+background:#f5f5f5;
+padding:12px;
+border-radius:12px;
+">
+
+<span>
+Supplier Payroll
+</span>
+
+<span
+class="value"
+id="dashSupplierPayroll">
+
+5
+
+</span>
+
+</div>
+
+
+
+<div
+class="row"
+
+style="
+display:flex;
+justify-content:space-between;
+background:#d4edda;
+padding:14px;
+border-radius:12px;
+font-weight:bold;
+font-size:18px;
+">
+
+<span>
+💰 Profit
+</span>
+
+<span
+class="value"
+id="dashProfit">
+
+5
+
+</span>
+
+</div>
+
+
+</div>
+
+
+
+<!-- DASHBOARD BOTTOM NAV -->
+
+<div class="bottomNav"
+
+style="
+position:fixed;
+
+bottom:0;
+
+left:0;
+
+right:0;
+
+height:64px;
+
+display:flex;
+
+justify-content:space-around;
+
+align-items:center;
+
+background:white;
+
+border-top:1px solid #eee;
+
+box-shadow:
+0 -4px 12px rgba(0,0,0,.08);
+
+z-index:1300;
+">
+
+
+<button
+onclick="openSection('productsSection')"
+
+style="
+background:none;
+border:none;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+">
+
+<div style="font-size:20px;">
+📦
+</div>
+
+<div style="font-size:10px;">
+Products
+</div>
+
+</button>
+
+
+
+<button
+onclick="openSection('suppliersSection')"
+
+style="
+background:none;
+border:none;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+">
+
+<div style="font-size:20px;">
+🚚
+</div>
+
+<div style="font-size:10px;">
+Suppliers
+</div>
+
+</button>
+
+
+
+<button
+onclick="openSection('customersSection')"
+
+style="
+background:none;
+border:none;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+">
+
+<div style="font-size:20px;">
+🧑‍🤝‍🧑
+</div>
+
+<div style="font-size:10px;">
+Customers
+</div>
+
+</button>
+
+
+
+<button
+onclick="openSection('employeesSection')"
+
+style="
+background:none;
+border:none;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+">
+
+<div style="font-size:20px;">
+👤
+</div>
+
+<div style="font-size:10px;">
+Employees
+</div>
+
+</button>
+
+
+
+<button
+onclick="openSection('expensesSection')"
+
+style="
+background:none;
+border:none;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+">
+
+<div style="font-size:20px;">
+📄
+</div>
+
+<div style="font-size:10px;">
+Expenses
+</div>
+
+</button>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- PRODUCTS PAGE -->
+<!-- ========================= -->
+
+<div id="productsSection" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100vw;
+height:100vh;
+background:#fff;
+z-index:99999;
+overflow-y:auto;
+overflow-x:hidden;
+padding:20px;
+box-sizing:border-box;
+">
+
+<!-- CLOSE BUTTON -->
+<button onclick="closeProducts()" style="
+position:fixed;
+top:12px;
+left:12px;
+background:#fff;
+border:none;
+width:38px;
+height:38px;
+border-radius:50%;
+font-size:18px;
+box-shadow:0 2px 8px rgba(0,0,0,0.15);
+z-index:2100;
+">
+✕
+</button>
+
+
+<!-- CONTENT -->
+<div style="margin-top:60px;">
 
   <!-- 📦 ADD PRODUCT -->
   <div class="card">
 
     <h3>📦 Add Product</h3>
 
-<!-- 📦 PRODUCT CATEGORY -->
+    <!-- CATEGORY -->
+    <select id="productCategory"
+      onchange="changeProductFields()"
+      style="width:100%;padding:10px;">
 
-<select id="productCategory"
-  onchange="changeProductFields()">
+      <option value="">Select Category</option>
+      <option value="inventory">Inventory</option>
+      <option value="raw">Raw Materials</option>
+      <option value="finished">Finished Goods</option>
 
-  <option value="">
-    Select Category
-  </option>
+    </select>
 
-  <option value="inventory">
-    Inventory
-  </option>
+    <!-- DYNAMIC FIELDS -->
+    <div id="dynamicFields"></div>
 
-  <option value="raw">
-    Raw Materials
-  </option>
-
-  <option value="finished">
-    Finished Goods
-  </option>
-
-</select>
-
-<!-- 🔥 DYNAMIC FIELDS -->
-<div id="dynamicFields"></div>
-
-    
-
-    <button onclick="saveProduct()">
+    <!-- SAVE -->
+    <button onclick="saveProduct()" style="
+      width:100%;
+      margin-top:10px;
+      padding:12px;
+      background:#0d6efd;
+      color:white;
+      border:none;
+      border-radius:10px;
+    ">
       Save Product
     </button>
 
   </div>
-
-  <!-- 📋 PRODUCT LIST -->
-  <div id="productList"></div>
-
-</div>
-
-<!-- ========================= -->
-<!-- PRODUCT VIEW SECTION -->
-<!-- ========================= -->
-<div id="productViewSection" class="section">
-
-  <button onclick="openSection('productsSection')">
-    ⬅ Back
-  </button>
-
-  <!-- 🔍 PRODUCT DETAILS -->
-  <div id="productView"></div>
-
-</div>
-
-
-<!-- =========================
-     SUPPLIERS SECTION
-========================= -->
-<div id="suppliersSection" class="section" style="display:none; padding:10px; position:relative;">
-
-  <!-- BACK BUTTON -->
-  <button onclick="goBack()" style="
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    background: #fff;
-    border: none;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 18px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 2000;
-  ">
-    🔙
-  </button>
-
-  <!-- TITLE -->
-  <h2 style="margin-top:60px;">🚚 Suppliers</h2>
-
+  
+  <!-- TOP BAR -->
 <div style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin:10px 0;
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-top:15px;
+margin-bottom:15px;
 ">
 
-  <!-- ADD SUPPLIER (LEFT) -->
-  <button onclick="openAddSupplier()" style="
-    display:inline-block;
-    padding:8px 12px;
-    border:none;
-    background:linear-gradient(135deg,#4CAF50,#2E7D32);
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:13px;
-    font-weight:600;
-    box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  <!-- TITLE + TOTAL -->
+  <div id="productTotal" style="
+  font-size:18px;
+  font-weight:bold;
   ">
-    ➕ Add Supplier
-  </button>
+    📦 Products (0)
+  </div>
 
-  <!-- PAYROLL (RIGHT) -->
-  <button onclick="openSupplierPayroll()" style="
-    width:42px;
-    height:42px;
-    border:none;
-    border-radius:50%;
-    background:linear-gradient(135deg,#FF9800,#F57C00);
-    color:white;
-    font-size:18px;
-    box-shadow:0 3px 10px rgba(0,0,0,0.15);
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+  <!-- SEARCH ICON -->
+  <button
+  onclick="toggleProductSearch()"
+  style="
+  border:none;
+  background:none;
+  font-size:22px;
+  cursor:pointer;
   ">
-    💰
+    🔎
   </button>
 
 </div>
 
+<!-- SEARCH -->
+<input
+id="productSearch"
+type="text"
+placeholder="Search product..."
+oninput="searchProducts()"
+style="
+display:none;
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border:none;
+outline:none;
+background:#f6f7fb;
+border-radius:10px;
+box-sizing:border-box;
+font-size:14px;
+">
+
+<!-- PRODUCT LIST -->
+<div id="productList" style="margin-top:20px;"></div>
+
+</div>
+
+</div>
+
+<!-- ========================= -->
+<!-- PRODUCT VIEW -->
+<!-- ========================= -->
+
+<div
+id="productViewSection"
+
+style="
+display:none;
+
+position:fixed;
+
+inset:0;
+
+background:white;
+
+z-index:1500;
+
+overflow:auto;
+
+padding:20px;
+">
+
+<button
+
+onclick="
+openSection(
+'productsSection'
+)
+"
+
+style="
+margin-bottom:16px;
+">
+
+⬅ Back
+
+</button>
 
 
-  <!-- SEARCH -->
-  <input
-    id="supplierSearch"
-    placeholder="Search Supplier"
-    oninput="searchSuppliers()"
-    style="
-      width:100%;
-      padding:10px;
-      margin-bottom:10px;
-      border:1px solid #ddd;
-      border-radius:6px;
-    "
-  >
+<div
+id="productView">
 
-  <!-- SUPPLIER LIST -->
-  <div id="supplierList"></div>
-
-  <!-- SHOW MORE BUTTON (FIXED INSIDE SECTION ONLY) -->
-  <button id="showMoreBtn" onclick="toggleSuppliers()" style="
-    position: fixed;
-    bottom: 90px;
-    right: 15px;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    background: #2196F3;
-    color: white;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    cursor: pointer;
-    z-index: 3000;
-  ">
-    +
-  </button>
+</div>
 
 </div>
 
 
+<!-- ========================= -->
+<!-- SUPPLIERS PAGE -->
+<!-- ========================= -->
 
+<div id="suppliersSection" style="
+display:none;
+position:fixed;
+inset:0;
+background:white;
+z-index:2000;
+overflow:auto;
+padding:20px;
+">
+
+<!-- CLOSE -->
+<button onclick="closeSuppliers()" style="
+position:fixed;
+top:12px;
+left:12px;
+width:40px;
+height:40px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+z-index:3000;
+">
+✕
+</button>
+
+
+<h2 style="
+margin-top:60px;
+">
+🚚 Suppliers
+</h2>
+
+
+<!-- ACTION BAR -->
+<div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin:15px 0;
+">
+
+<button
+onclick="openAddSupplier()"
+style="
+padding:10px 14px;
+border:none;
+background:
+linear-gradient(
+135deg,
+#4CAF50,
+#2E7D32
+);
+color:white;
+border-radius:10px;
+font-size:14px;
+font-weight:600;
+box-shadow:
+0 3px 10px
+rgba(0,0,0,.15);
+">
+
+➕ Add Supplier
+
+</button>
+
+
+<button
+onclick="openSupplierPayroll()"
+style="
+width:44px;
+height:44px;
+border:none;
+border-radius:50%;
+background:
+linear-gradient(
+135deg,
+#FF9800,
+#F57C00
+);
+color:white;
+font-size:20px;
+box-shadow:
+0 3px 10px
+rgba(0,0,0,.15);
+">
+
+💰
+
+</button>
+
+</div>
+
+
+<!-- TOP BAR -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+">
+
+  <!-- TITLE + TOTAL -->
+  <div id="supplierTotal" style="
+  font-size:18px;
+  font-weight:bold;
+  ">
+    🚚 Suppliers (0)
+  </div>
+
+  <!-- SEARCH ICON -->
+  <button
+  onclick="toggleSupplierSearch()"
+  style="
+  border:none;
+  background:none;
+  font-size:22px;
+  cursor:pointer;
+  ">
+    🔎
+  </button>
+
+</div>
+
+<!-- SEARCH -->
+<input
+id="supplierSearch"
+type="text"
+placeholder="Search supplier..."
+oninput="searchSuppliers()"
+style="
+display:none;
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border:none;
+outline:none;
+background:#f6f7fb;
+border-radius:12px;
+box-sizing:border-box;
+font-size:14px;
+">
+
+<!-- SUPPLIER LIST -->
+<div id="supplierList">
+
+  <div style="
+  padding:30px;
+  text-align:center;
+  color:#888;
+  ">
+    🚚 No suppliers yet
+  </div>
+
+</div>
+</div>
+
+</div>
 
 <!-- =========================
      ADD SUPPLIER POPUP
@@ -754,27 +1264,57 @@ Create Account
 <!-- =========================
      SUPPLIER PROFILE
 ========================= -->
-<div id="supplierProfile" class="section" style="display:none; padding:10px;">
 
-  <button onclick="openSection('suppliersSection')" style="
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    background: #fff;
-    border: none;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 18px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 2000;
-  ">
-    🔙
-  </button>
+<div
+id="supplierProfile"
 
-  <h3 style="margin-top:60px;">Supplier Profile</h3>
+style="
+display:none;
+position:fixed;
+inset:0;
+background:white;
+z-index:5000;
+overflow:auto;
+padding:20px;
+box-sizing:border-box;
+">
 
-  <div id="supplierInfo"></div>
+<!-- BACK -->
+
+<button
+onclick="goBackSuppliers()"
+
+style="
+position:fixed;
+top:12px;
+left:12px;
+
+width:40px;
+height:40px;
+
+border:none;
+
+border-radius:50%;
+
+background:white;
+
+box-shadow:
+0 2px 8px
+rgba(0,0,0,.15);
+
+z-index:6000;
+">
+
+🔙
+
+</button>
+
+
+
+<div
+id="supplierInfo">
+
+</div>
 
 </div>
 
@@ -793,29 +1333,65 @@ Create Account
   box-sizing:border-box;
 ">
 
-  <!-- TOP BAR -->
-  <div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  ">
+<!-- TOP BAR -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+">
 
-    <button onclick="closeSupplierPayroll()" style="
-      width:36px;
-      height:36px;
-      border:none;
-      border-radius:50%;
-      background:white;
-    ">
-      🔙
-    </button>
+<!-- BACK -->
+<button
+onclick="closeSupplierPayroll()"
+style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:white;
+">
 
-    <h3 style="margin:0;">💰 Supplier Payroll</h3>
+🔙
 
-    <div style="width:36px;"></div>
+</button>
 
-  </div>
+
+<!-- TITLE -->
+<h3 style="
+margin:0;
+">
+
+💰 Supplier Payroll
+
+</h3>
+
+
+<!-- SETTINGS -->
+<button
+
+onclick="
+openPayrollSettings()
+"
+
+style="
+width:36px;
+height:36px;
+
+border:none;
+
+border-radius:50%;
+
+background:white;
+
+font-size:18px;
+">
+
+⚙️
+
+</button>
+
+</div>
 
   <div id="supplierPayrollTotal"></div>
  <input
@@ -837,10 +1413,154 @@ Create Account
 </div>
 
 
-<!-- ========================= -->
-<!-- SALE BUILDER -->
-<!-- ========================= -->
-<div id="saleBuilder" style="
+
+<!-- PAYROLL SETTINGS -->
+
+<div id="payrollSettings" style="
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.35);
+z-index:4000;
+align-items:center;
+justify-content:center;
+">
+
+<div style="
+background:white;
+width:92%;
+max-width:340px;
+border-radius:18px;
+padding:14px;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<h3 style="margin:0;">
+⚙️ Payroll Settings
+</h3>
+
+<button
+onclick="closePayrollSettings()"
+style="
+border:none;
+background:none;
+font-size:18px;
+">
+✕
+</button>
+
+</div>
+
+<!-- SORT -->
+
+<div style="margin-top:16px;">
+
+<div style="
+font-weight:bold;
+margin-bottom:8px;
+">
+📊 Sort
+</div>
+
+<select
+id="payrollSort"
+onchange="openSupplierPayroll()"
+style="
+width:100%;
+padding:10px;
+border-radius:10px;
+">
+  
+
+<option value="high">Highest Total</option>
+<option value="low">Lowest Total</option>
+<option value="az">Name A-Z</option>
+
+</select>
+
+</div>
+
+<!-- DATE -->
+
+<div style="margin-top:14px;">
+
+<div style="
+font-weight:bold;
+margin-bottom:8px;
+">
+📅 Date Filter
+</div>
+
+<select
+id="payrollDate"
+onchange="openSupplierPayroll()"
+style="
+width:100%;
+padding:10px;
+border-radius:10px;
+">
+  
+<option value="all">All</option>
+<option value="today">Today</option>
+<option value="month">This Month</option>
+
+</select>
+
+</div>
+
+<!-- EXPORT -->
+
+<div style="margin-top:14px;">
+
+<div style="
+font-weight:bold;
+margin-bottom:8px;
+">
+📄 Export
+</div>
+
+<button
+onclick="exportPayroll()"
+style="
+width:100%;
+padding:10px;
+border:none;
+background:#4CAF50;
+color:white;
+border-radius:10px;
+">
+⬇ Export Report
+</button>
+
+</div>
+
+<!-- PRINT -->
+
+<div style="margin-top:14px;">
+
+<div style="
+font-weight:bold;
+margin-bottom:8px;
+">
+🖨 Print
+</div>
+
+<button onclick="printSupplierPayroll()">
+🖨 Print Supplier Payroll
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="supplierSaleBuilder" style="
 display:none;
 position:fixed;
 top:0;
@@ -854,297 +1574,417 @@ overflow:auto;
 font-family:Arial;
 ">
 
-<h3>💰 New Sale</h3>
-<input
-  id="productSearch"
-  placeholder="🔍 Search product..."
-  oninput="filterSaleProducts()"
-  style="
-    width:100%;
-    padding:10px;
+  <!-- TOP BAR -->
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
     margin-bottom:10px;
-    border:1px solid #ddd;
-    border-radius:6px;
-  "
->
-<select id="saleProduct" style="
-width:100%;
-padding:10px;
-margin-bottom:10px;
-border:1px solid #ddd;
-border-radius:6px;
-"></select>
+  ">
 
-<input id="saleQty" type="number" placeholder="Quantity" style="
-width:100%;
-padding:10px;
-margin-bottom:10px;
-border:1px solid #ddd;
-border-radius:6px;
+    <button onclick="closeSupplierSaleBuilder()" style="
+      width:36px;
+      height:36px;
+      border:none;
+      border-radius:50%;
+      background:#f5f5f5;
+      cursor:pointer;
+      font-size:16px;
+    ">
+      🔙
+    </button>
+
+    <h3 style="margin:0;">🚚 Supplier Purchase</h3>
+
+    <div style="width:36px;"></div>
+  </div>
+
+  <!-- CARD -->
+  <div style="
+    background:white;
+    padding:12px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+  ">
+
+    <!-- SEARCH -->
+    <input
+      id="supplierProductSearch"
+      placeholder="Search products..."
+      oninput="filterSupplierProducts()"
+      style="
+        width:100%;
+        padding:14px;
+        border:none;
+        background:#f5f5f5;
+        border-radius:25px;
+        margin-bottom:12px;
+      "
+    >
+
+    <!-- PRODUCTS LIST (LIKE CUSTOMER STYLE) -->
+    <div id="supplierProductsList"></div>
+
+
+    <!-- ACTION BUTTONS -->
+    <div style="
+      display:flex;
+      gap:10px;
+      margin-top:15px;
+    ">
+
+      <button onclick="saveSupplierSelectedProducts()" style="
+        flex:1;
+        padding:12px;
+        background:#2196F3;
+        color:white;
+        border:none;
+        border-radius:25px;
+        font-weight:bold;
+      ">
+        ➕ Add
+      </button>
+
+      <button onclick="finishSupplierSale()" style="
+        flex:1;
+        padding:12px;
+        background:#4CAF50;
+        color:white;
+        border:none;
+        border-radius:25px;
+        font-weight:bold;
+      ">
+        ✔ Finish
+      </button>
+
+    </div>
+    <!-- SELECTED ITEMS -->
+    <div id="supplierSaleItemsList" style="margin-top:15px;"></div>
+
+  </div>
+</div>
+
+
+<div
+id="supplierHistorySection"
+
+style="
+display:none;
+position:fixed;
+inset:0;
+background:white;
+z-index:9999;
+overflow:auto;
+padding:20px;
+box-sizing:border-box;
 ">
 
-<div style="display:flex;gap:8px;margin-top:10px;">
+<!-- BACK -->
 
-  <button onclick="addSaleItem()" style="
-  flex:1;
-  padding:8px;
-  background:#2196F3;
-  color:white;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
-  ">
-  ➕ Add
-  </button>
+<button
+onclick="
+document.getElementById(
+'supplierHistorySection'
+).style.display='none';
 
-  <button onclick="finishSale()" style="
-  flex:1;
-  padding:8px;
-  background:#4CAF50;
-  color:white;
-  border:none;
-  border-radius:6px;
-  font-size:13px;
-  ">
-  ✔ Finish
-  </button>
+document.getElementById(
+'supplierProfile'
+).style.display='block';
+"
+
+style="
+position:fixed;
+top:12px;
+left:12px;
+
+width:40px;
+height:40px;
+
+border:none;
+
+border-radius:50%;
+
+background:white;
+
+box-shadow:
+0 2px 8px
+rgba(0,0,0,.15);
+">
+
+🔙
+
+</button>
+
+
+<h2 style="
+margin-top:60px;
+">
+
+📋 Supplier History
+
+</h2>
+
+
+<div
+id="supplierHistoryList"
+
+style="
+margin-top:20px;
+">
 
 </div>
 
-<div id="saleItemsList" style="margin-top:12px;font-size:13px;"></div>
 </div>
-
-
-<div id="supplierHistorySection"
-style="display:none;padding:10px;">
-
-  <button onclick="
-    document.getElementById('supplierHistorySection').style.display='none';
-    document.getElementById('supplierProfile').style.display='block';
-  ">
-    🔙 Back
-  </button>
-
-  <h3>📋 Supplier History</h3>
-
-  <div id="supplierHistoryList"></div>
-
-</div>
-
 
 
 <!-- =========================
      CUSTOMERS SECTION
 ========================= -->
-<div id="customersSection" class="section" style="display:none;padding:10px;">
-
-  <button onclick="goBack()" style="
-    position:fixed;
-    top:12px;
-    left:12px;
-    width:38px;
-    height:38px;
-    border:none;
-    border-radius:50%;
-    background:white;
-    z-index:2000;
-  ">
-    🔙
-  </button>
-
-  <h2 style="margin-top:60px;">👤 Customers</h2>
-
-  <button onclick="openAddCustomer()" style="
-    width:100%;
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    background:#4CAF50;
-    color:white;
-    margin-bottom:10px;
-  ">
-    ➕ Add Customer
-  </button>
-
-  <input
-    id="customerSearch"
-    placeholder="🔍 Search Customer..."
-    oninput="searchCustomers()"
-    style="
-      width:100%;
-      padding:10px;
-      border:1px solid #ddd;
-      border-radius:8px;
-      margin-bottom:10px;
-    "
-  >
-
-  <div id="customerList"></div>
-
-</div>
-
-
-<!-- =========================
-     ADD CUSTOMER POPUP
-========================= -->
-
-<div id="addCustomerPopup" style="
-  display:none;
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  width:90%;
-  max-width:360px;
-  background:white;
-  border-radius:16px;
-  box-shadow:0 15px 35px rgba(0,0,0,0.25);
-  z-index:9999;
-  overflow:hidden;
-  font-family:Arial;
+<div id="customersSection" style="
+display:none;
+position:fixed;
+inset:0;
+background:#fff;
+z-index:3000;
+overflow:auto;
+padding:20px;
+box-sizing:border-box;
 ">
 
-  <!-- HEADER -->
-  <div style="
-    background:linear-gradient(135deg,#2196F3,#1976D2);
-    color:white;
-    padding:14px;
-    text-align:center;
-    font-weight:bold;
-    font-size:16px;
+<!-- BACK -->
+<button onclick="closeCustomers()" style="
+position:fixed;
+top:12px;
+left:12px;
+width:40px;
+height:40px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+z-index:4000;
+">
+🔙
+</button>
+
+<h2 style="
+margin-top:60px;
+margin-bottom:15px;
+">
+👤 Customers
+</h2>
+
+<!-- ADD -->
+<button
+onclick="openAddCustomer()"
+style="
+width:100%;
+padding:12px;
+border:none;
+border-radius:10px;
+background:linear-gradient(135deg,#4CAF50,#2E7D32);
+color:white;
+font-weight:bold;
+margin-bottom:12px;
+">
+➕ Add Customer
+</button>
+
+<!-- TOP BAR -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+">
+
+  <!-- TITLE + TOTAL -->
+  <div id="customerTotal"
+  style="
+  font-size:18px;
+  font-weight:bold;
   ">
-    👤 Add Customer
+    👤 Customers (0)
   </div>
 
-  <!-- BODY -->
-  <div style="padding:15px;">
+  <!-- SEARCH ICON -->
+  <button
+  onclick="toggleCustomerSearch()"
+  style="
+  border:none;
+  background:none;
+  font-size:22px;
+  cursor:pointer;
+  ">
+    🔎
+  </button>
 
-    <input id="cName"
-      placeholder="Customer Name"
-      style="
-        width:100%;
-        padding:12px;
-        margin-bottom:10px;
-        border:1px solid #ddd;
-        border-radius:10px;
-        outline:none;
-      ">
+</div>
 
-    <input id="cPhone"
-      placeholder="Phone"
-      style="
-        width:100%;
-        padding:12px;
-        margin-bottom:10px;
-        border:1px solid #ddd;
-        border-radius:10px;
-        outline:none;
-      ">
-
-    <input id="cLocation"
-      placeholder="Location"
-      style="
-        width:100%;
-        padding:12px;
-        margin-bottom:15px;
-        border:1px solid #ddd;
-        border-radius:10px;
-        outline:none;
-      ">
-
-    <!-- SAVE -->
-    <div style="
-  display:flex;
-  gap:10px;
-  margin-top:10px;
+<!-- SEARCH BOX -->
+<input
+id="customerSearch"
+type="text"
+placeholder="Search customer..."
+oninput="searchCustomers()"
+style="
+display:none;
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border:none;
+outline:none;
+background:#f6f7fb;
+border-radius:12px;
+box-sizing:border-box;
+font-size:14px;
 ">
 
-  <!-- SAVE -->
-  <button onclick="saveCustomer()" style="
-    flex:1;
-    padding:10px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(135deg,#2196F3,#0D47A1);
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-    font-size:13px;
-  ">
-    💾 Save
-  </button>
-
-  <!-- CANCEL -->
-  <button onclick="closeCustomerPopup()" style="
-    flex:1;
-    padding:10px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(135deg,#f44336,#c62828);
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
-    font-size:13px;
-  ">
-    ✖ Cancel
-  </button>
+<!-- LIST -->
+<div id="customerList"></div>
 
 </div>
 
-</div>
-</div>
+ <div id="addCustomerPopup" style="  
+  display:none;  
+  position:fixed;  
+  top:50%;  
+  left:50%;  
+  transform:translate(-50%, -50%);  
+  width:90%;  
+  max-width:360px;  
+  background:white;  
+  border-radius:16px;  
+  box-shadow:0 15px 35px rgba(0,0,0,0.25);  
+  z-index:9999;  
+  overflow:hidden;  
+  font-family:Arial;  
+">    <!-- HEADER -->    <div style="  
+    background:linear-gradient(135deg,#2196F3,#1976D2);  
+    color:white;  
+    padding:14px;  
+    text-align:center;  
+    font-weight:bold;  
+    font-size:16px;  
+  ">  
+    👤 Add Customer  
+  </div>    <!-- BODY -->    <div style="padding:15px;">  <input id="cName"  
+  placeholder="Customer Name"  
+  style="  
+    width:100%;  
+    padding:12px;  
+    margin-bottom:10px;  
+    border:1px solid #ddd;  
+    border-radius:10px;  
+    outline:none;  
+  ">  
 
-<!-- =========================
-     CUSTOMER PROFILE
-========================= -->
-<div id="customerProfile" class="section"
-style="display:none;padding:10px;">
-</div>
+<input id="cPhone"  
+  placeholder="Phone"  
+  style="  
+    width:100%;  
+    padding:12px;  
+    margin-bottom:10px;  
+    border:1px solid #ddd;  
+    border-radius:10px;  
+    outline:none;  
+  ">  
 
-<div id="editCustomerPopup" style="
-  display:none;
-  position:fixed;
-  top:20%;
-  left:50%;
-  transform:translateX(-50%);
-  width:90%;
-  max-width:350px;
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 10px rgba(0,0,0,.2);
-  z-index:9999;
+<input id="cLocation"  
+  placeholder="Location"  
+  style="  
+    width:100%;  
+    padding:12px;  
+    margin-bottom:15px;  
+    border:1px solid #ddd;  
+    border-radius:10px;  
+    outline:none;  
+  ">  
+
+<!-- SAVE -->  
+<div style="
+
+display:flex;
+gap:10px;
+margin-top:10px;
 ">
-  <h3>✏️ Edit Customer</h3>
 
-  <input id="editName" style="width:100%;padding:10px;margin-bottom:8px;">
-  <input id="editPhone" style="width:100%;padding:10px;margin-bottom:8px;">
-  <input id="editLocation" style="width:100%;padding:10px;margin-bottom:8px;">
+  <!-- SAVE -->  <button onclick="saveCustomer()" style="  
+flex:1;  
+padding:10px;  
+border:none;  
+border-radius:10px;  
+background:linear-gradient(135deg,#2196F3,#0D47A1);  
+color:white;  
+font-weight:bold;  
+cursor:pointer;  
+font-size:13px;  
+">
+💾 Save
+</button>
 
-  <button onclick="updateCustomer()" style="
-    width:100%;
-    padding:10px;
-    background:#4CAF50;
-    color:white;
-    border:none;
-    border-radius:8px;
-  ">
-    💾 Save Changes
-  </button>
+  <!-- CANCEL -->  <button onclick="closeCustomerPopup()" style="  
+flex:1;  
+padding:10px;  
+border:none;  
+border-radius:10px;  
+background:linear-gradient(135deg,#f44336,#c62828);  
+color:white;  
+font-weight:bold;  
+cursor:pointer;  
+font-size:13px;  
+">
+✖ Cancel
+</button>
 
-  <button onclick="closeEditCustomer()" style="
-    width:100%;
-    margin-top:8px;
-    padding:10px;
-    background:#f44336;
-    color:white;
-    border:none;
-    border-radius:8px;
-  ">
-    Cancel
-  </button>
-</div>
+</div>  
+</div>  
+</div>  
 
+<!-- =========================  
+     CUSTOMER PROFILE  
+========================= -->  <div id="customerProfile" class="section"  
+style="display:none;padding:10px;">  
+</div>  <div id="editCustomerPopup" style="  
+  display:none;  
+  position:fixed;  
+  top:20%;  
+  left:50%;  
+  transform:translateX(-50%);  
+  width:90%;  
+  max-width:350px;  
+  background:white;  
+  padding:15px;  
+  border-radius:10px;  
+  box-shadow:0 2px 10px rgba(0,0,0,.2);  
+  z-index:9999;  
+">  
+  <h3>✏️ Edit Customer</h3>    <input id="editName" style="width:100%;padding:10px;margin-bottom:8px;">  
+  <input id="editPhone" style="width:100%;padding:10px;margin-bottom:8px;">  
+  <input id="editLocation" style="width:100%;padding:10px;margin-bottom:8px;">  <button onclick="updateCustomer()" style="  
+width:100%;  
+padding:10px;  
+background:#4CAF50;  
+color:white;  
+border:none;  
+border-radius:8px;  
+">
+💾 Save Changes
+</button>
+
+<button onclick="closeEditCustomer()" style="  
+width:100%;  
+margin-top:8px;  
+padding:10px;  
+background:#f44336;  
+color:white;  
+border:none;  
+border-radius:8px;  
+">
+Cancel
+</button>
+
+</div> 
 
 <div id="customerSaleBuilder" style="
 display:none;
@@ -1160,37 +2000,64 @@ overflow:auto;
 font-family:Arial;
 ">
 
-  <h3>💰 Customer Sale</h3>
+  <!-- TOP BAR -->
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  ">
 
-<div style="
-background:white;
-padding:12px;
-border-radius:12px;
-box-shadow:0 2px 8px rgba(0,0,0,.08);
-">
+    <!-- CLOSE BUTTON (LEFT) -->
+    <button onclick="closeCustomerSaleBuilder()" style="
+      width:36px;
+      height:36px;
+      border:none;
+      border-radius:50%;
+      background:#f5f5f5;
+      cursor:pointer;
+      font-size:16px;
+    ">
+      🔙
+    </button>
 
-<input
-  id="customerProductSearch"
-  placeholder="Search products..."
-  oninput="filterCustomerSaleProducts()"
-  style="
-    width:100%;
-    padding:14px;
-    border:none;
-    background:#f5f5f5;
-    border-radius:25px;
-    margin-bottom:12px;
-  "
->
+    <h3 style="margin:0;">💰 Customer Sale</h3>
 
+    <!-- spacer (right balance) -->
+    <div style="width:36px;"></div>
+
+  </div>
+
+  <div style="
+    background:white;
+    padding:12px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+  ">
+
+    <input
+      id="customerProductSearch"
+      placeholder="Search products..."
+      oninput="filterCustomerSaleProducts()"
+      style="
+        width:100%;
+        padding:14px;
+        border:none;
+        background:#f5f5f5;
+        border-radius:25px;
+        margin-bottom:12px;
+      "
+    >
+    
 <div id="customerProductsList"></div>
+
 
 <div style="
 display:flex;
 gap:10px;
 margin-top:15px;
 ">
-  
+
 <button onclick="saveSelectedProducts()" style="
 flex:1;
 padding:12px;
@@ -1276,18 +2143,60 @@ style="margin-top:15px;"></div>
 </div>
 
 <div id="customerHistoryView" style="
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#f6f7fb;
-  z-index:9999;
-  overflow:auto;
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
 ">
-  <div id="customerHistoryItems"></div>
+
+  <!-- TOP BAR -->
+  <div style="
+    position:sticky;
+    top:0;
+    background:#f6f7fb;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:1px solid #eee;
+  ">
+
+    <button
+      onclick="closeCustomerHistoryView()"
+      style="
+        width:40px;
+        height:40px;
+        border:none;
+        border-radius:50%;
+        background:white;
+        box-shadow:0 2px 6px rgba(0,0,0,.1);
+        cursor:pointer;
+      ">
+      🔙
+    </button>
+
+    <h3 style="margin:0;">
+      🧾 History Details
+    </h3>
+
+    <div style="width:40px;"></div>
+
+  </div>
+
+  <!-- CONTENT -->
+  <div
+    id="customerHistoryItems"
+    style="padding:12px;">
+  </div>
+
 </div>
+
+
 
 <!-- ========================= -->
 <!-- EMPLOYEES -->
@@ -1300,7 +2209,7 @@ style="margin-top:15px;"></div>
   width:100%;
   height:100%;
   background:#f6f7fb;
-  z-index:1000;
+  z-index:9999;
   overflow:auto;
   overflow-x:hidden;
   padding:10px;
@@ -1420,21 +2329,56 @@ style="margin-top:15px;"></div>
   </div>
 
 
+<!-- TOP BAR -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+">
+
+  <!-- TOTAL -->
+  <div id="employeeTotal" style="
+  font-size:18px;
+  font-weight:bold;
+  ">
+    👨‍💼 Employees (0)
+  </div>
+
+  <!-- SEARCH ICON -->
+  <button
+  onclick="toggleEmployeeSearch()"
+  style="
+  border:none;
+  background:none;
+  font-size:22px;
+  cursor:pointer;
+  ">
+    🔎
+  </button>
+
+</div>
+
+<!-- SEARCH INPUT -->
 <input
   id="employeeSearch"
-  placeholder="🔍 Search employee..."
+  placeholder="Search employee..."
   oninput="searchEmployees()"
   style="
+    display:none;
     width:100%;
     padding:12px;
     margin-bottom:10px;
-    border:1px solid #ddd;
-    border-radius:25px;
+    border:none;
+    outline:none;
+    background:#f6f7fb;
+    border-radius:12px;
     box-sizing:border-box;
-    background:white;
+    font-size:14px;
   "
 >
 
+<!-- LIST -->
 <div id="employeeList"></div>
 
 
@@ -1501,49 +2445,46 @@ style="margin-top:15px;"></div>
   <div id="payrollList"></div>
 
 </div>
-<div id="attendanceView" style="
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#f6f7fb;
-  z-index:9999;
-  overflow:auto;
-  font-family:Arial;
+<div id="attendanceSection" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
+padding:12px;
 ">
 
-  <!-- TOP BAR -->
-  <div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:10px;
-    background:white;
-    box-shadow:0 1px 4px rgba(0,0,0,.1);
-  ">
+<div style="
+display:flex;
+align-items:center;
+gap:10px;
+margin-bottom:15px;
+">
 
-    <button onclick="closeAttendanceView()" style="
-      width:36px;
-      height:36px;
-      border:none;
-      border-radius:50%;
-      background:#eee;
-    ">🔙</button>
+<button onclick="
+document.getElementById('attendanceSection').style.display='none';
+document.getElementById('employeeProfile').style.display='block';
+" style="
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:white;
+">
+🔙
+</button>
 
-    <b>📅 Attendance History</b>
-
-    <span></span>
-
-  </div>
-
-  <!-- LIST -->
-  <div id="attendanceList" style="padding:10px;"></div>
+<h3 style="margin:0;">📅 Attendance</h3>
 
 </div>
 
+<div id="attendanceList"></div>
 
+</div>
 
 <!-- ========================= -->
 <!-- EXPENSES -->
@@ -1559,7 +2500,7 @@ style="margin-top:15px;"></div>
   width:100%;
   height:100%;
   background:#f6f7fb;
-  z-index:1000;
+  z-index:9999;
   overflow:auto;
   padding:10px;
   box-sizing:border-box;
@@ -1706,7 +2647,7 @@ style="margin-top:15px;"></div>
 
 </div>
 
-  
+
  <input
   id="expenseSearch"
   placeholder="🔍 Search expense..."
@@ -1724,38 +2665,20 @@ style="margin-top:15px;"></div>
 
 </div>
 
+<div id="expenseView" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
+"></div>
 
-<div id="supplierMenu" style="
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:#fff;
-  border-radius:20px 20px 0 0;
-  box-shadow:0 -5px 20px rgba(0,0,0,0.2);
-  display:none;
-  padding:15px;
-">
-  <button onclick="menuEdit()">✏️ Edit</button>
-  <button onclick="menuDelete()">🗑 Delete</button>
-  <button onclick="closeMenu()">Cancel</button>
-</div>
-
-
-
-<div id="settingsSection" class="section" style="display:none;">
-  <h2>⚙️ Settings</h2>
-
-  <p>Profile</p>
-  <p>Theme</p>
-  <p>Language</p>
-  <p>Logout</p>
-</div>
-
-<!-- ========================= -->
-<!-- APP JS -->
-<!-- ========================= -->
 <script type="module" src="app.js"></script>
 
 </body>
+
 </html>
