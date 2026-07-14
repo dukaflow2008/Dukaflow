@@ -9,6 +9,9 @@
 <title>DukaFlow</title>
 
 <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d6efd">
+
+
 
 <style>
 
@@ -273,6 +276,23 @@ color:black;
 
 <body>
 
+
+<div id="networkStatus" style="
+position:fixed;
+top:10px;
+right:10px;
+background:#4CAF50;
+color:white;
+padding:6px 12px;
+border-radius:20px;
+font-size:12px;
+font-weight:bold;
+z-index:99999;
+box-shadow:0 2px 8px rgba(0,0,0,.2);
+transition:.3s;
+">
+🟢 Online
+</div>
 
 
 <!-- TOP -->
@@ -2678,6 +2698,20 @@ overflow:auto;
 "></div>
 
 <script type="module" src="app.js"></script>
+
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log(err));
+  });
+}
+</script>
+
 
 </body>
 
