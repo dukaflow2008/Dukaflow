@@ -6,7 +6,9 @@
 // FIREBASE IMPORTS
 // ===============================
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 
 import {
 getAuth,
@@ -16,35 +18,29 @@ signOut,
 onAuthStateChanged,
 setPersistence,
 browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+} 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  updateDoc,
-  onSnapshot,
-  getDoc,
-  query,
-  where
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+collection,
+addDoc,
+getDocs,
+deleteDoc,
+doc,
+updateDoc,
+onSnapshot,
+getDoc,
+query,
+where,
+initializeFirestore,
+persistentLocalCache,
+persistentMultipleTabManager
 
-import {
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
 
 
 // ===============================
@@ -54,10 +50,15 @@ const db = initializeFirestore(app, {
 const firebaseConfig = {
 
 apiKey: "AIzaSyBeWNOPH-CoksIlNE-V6wtBE1Um7gvgbG0",
+
 authDomain: "dukaflow-21ec9.firebaseapp.com",
+
 projectId: "dukaflow-21ec9",
+
 storageBucket: "dukaflow-21ec9.firebasestorage.app",
+
 messagingSenderId: "555776552379",
+
 appId: "1:555776552379:web:4238c2c40709e8c980289e"
 
 };
@@ -69,10 +70,28 @@ appId: "1:555776552379:web:4238c2c40709e8c980289e"
 // ===============================
 
 const app = initializeApp(firebaseConfig);
+
+
 const auth = getAuth(app);
 
-await setPersistence(auth, browserLocalPersistence);
 
+// OFFLINE FIRESTORE
+const db = initializeFirestore(app, {
+
+localCache: persistentLocalCache({
+
+tabManager: persistentMultipleTabManager()
+
+})
+
+});
+
+
+
+await setPersistence(
+auth,
+browserLocalPersistence
+);
 
 // ===============================
 // LOCAL STORAGE (SWITCH ACCOUNTS)
