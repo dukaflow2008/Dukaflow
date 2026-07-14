@@ -4,424 +4,889 @@
 
 
 // ===============================
-// 🔥 FIREBASE IMPORTS
+// FIREBASE IMPORTS
 // ===============================
 
-import { initializeApp }
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
-
 getAuth,
 createUserWithEmailAndPassword,
 signInWithEmailAndPassword,
 signOut,
-onAuthStateChanged
-
-}
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+onAuthStateChanged,
+setPersistence,
+browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
 import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+  onSnapshot,
+  getDoc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-getFirestore,
-collection,
-addDoc,
-getDocs,
-deleteDoc,
-doc,
-updateDoc,
-onSnapshot,
-getDoc
-
-}
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
 // ===============================
-// 🔥 FIREBASE CONFIG
+// FIREBASE CONFIG
 // ===============================
 
 const firebaseConfig = {
 
-apiKey:"AIzaSyBeWNOPH-CoksIlNE-V6wtBE1Um7gvgbG0",
-
-authDomain:"dukaflow-21ec9.firebaseapp.com",
-
-projectId:"dukaflow-21ec9",
-
-storageBucket:"dukaflow-21ec9.firebasestorage.app",
-
-messagingSenderId:"555776552379",
-
-appId:"1:555776552379:web:4238c2c40709e8c980289e"
+apiKey: "AIzaSyBeWNOPH-CoksIlNE-V6wtBE1Um7gvgbG0",
+authDomain: "dukaflow-21ec9.firebaseapp.com",
+projectId: "dukaflow-21ec9",
+storageBucket: "dukaflow-21ec9.firebasestorage.app",
+messagingSenderId: "555776552379",
+appId: "1:555776552379:web:4238c2c40709e8c980289e"
 
 };
 
 
+
 // ===============================
-// 🔥 INIT FIREBASE
+// INIT FIREBASE
 // ===============================
 
-const app =
-initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const db =
-getFirestore(app);
-
-const auth =
-getAuth(app);
+await setPersistence(auth, browserLocalPersistence);
 
 
 // ===============================
-// 🔥 EXPORT
+// LOCAL STORAGE (SWITCH ACCOUNTS)
+// ==============================
+
+function saveAccount(user){
+
+let accounts =
+JSON.parse(
+localStorage.getItem("df_accounts")
+) || [];
+
+let email =
+user.email;
+
+let existing =
+accounts.find(
+a=>a.email===email
+);
+
+if(existing){
+
+existing.active =
+true;
+
+}else{
+
+accounts.push({
+email,
+active:true
+});
+
+}
+
+accounts.forEach(a=>{
+
+a.active =
+a.email===email;
+
+});
+
+localStorage.setItem(
+"df_accounts",
+JSON.stringify(accounts)
+);
+
+}
+// ===============================
+// PROFILE MENU
 // ===============================
 
-export {
+window.openProfile = function(){
 
-db,
+document.getElementById(
+"profileSection"
+).style.display = "block";
+
+document.getElementById(
+"profileOverlay"
+).style.display = "block";
+
+};
+
+
+window.closeProfile = function(){
+
+document.getElementById(
+"profileSection"
+).style.display = "none";
+
+document.getElementById(
+"profileOverlay"
+).style.display = "none";
+
+};
+
+
+
+// ===============================
+// LOGIN
+// ===============================
+
+window.login = async function(){
+
+let email = prompt("Email")?.trim();
+let password = prompt("Password");
+
+try{
+
+let res = await signInWithEmailAndPassword(auth, email, password);
+
+saveAccount(res.user);
+
+alert("Login success");
+
+renderAccounts();
+
+}
+catch(e){
+
+console.log(
+"CODE:",
+e.code
+);
+
+console.log(
+"MESSAGE:",
+e.message
+);
+
+alert(
+e.code
+);
+
+}
+};
+
+// ===============================
+// SIGNUP
+// ===============================
+
+window.signup = async function(){
+
+let email =
+prompt("Email");
+
+let password =
+prompt("Password");
+
+if(!email || !password)
+return;
+
+try{
+
+const res =
+await createUserWithEmailAndPassword(
+auth,
+email,
+password
+);
+
+saveAccount(
+res.user
+);
+
+alert("Account created");
+
+}
+
+catch(e){
+
+alert(e.message);
+
+}
+
+};
+
+
+
+// ===============================
+// SWITCH ACCOUNT
+// ===============================
+
+window.openSwitch =
+function(){
+
+renderAccounts();
+
+document.getElementById(
+"switchModal"
+).style.display =
+"block";
+
+};
+
+
+
+window.closeSwitch =
+function(){
+
+document.getElementById(
+"switchModal"
+).style.display =
+"none";
+
+};
+
+
+function migrateAccounts() {
+
+let old = JSON.parse(localStorage.getItem("df_accounts")) || [];
+
+if (old.length > 0 && typeof old[0] === "string") {
+
+let newFormat = old.map(email => ({
+email,
+active: false
+}));
+
+localStorage.setItem("df_accounts", JSON.stringify(newFormat));
+
+console.log("Migrated accounts to object format");
+
+}
+
+}
+
+migrateAccounts();
+
+window.renderAccounts =
+function(){
+
+let box =
+document.getElementById(
+"accountList"
+);
+
+if(!box)
+return;
+
+let accounts =
+getAccounts();
+
+box.innerHTML="";
+
+if(accounts.length===0){
+
+box.innerHTML =
+"No saved accounts";
+
+return;
+
+}
+
+accounts.forEach(acc=>{
+
+let row =
+document.createElement("div");
+
+row.style=`
+padding:14px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+`;
+
+row.innerHTML=
+`
+${acc.active?"🟢":"👤"}
+${acc.email}
+`;
+
+row.onclick=
+()=>switchAccount(
+acc.email
+);
+
+box.appendChild(row);
+
+});
+
+};
+
+
+function getAccounts(){
+
+return JSON.parse(
+localStorage.getItem("df_accounts")
+) || [];
+
+}
+
+
+async function switchAccount(email) {
+
+try {
+
+await signOut(auth);
+
+// get account (demo simple login prompt fallback)
+let password = prompt("Enter password for:\n" + email);
+
+if (!password) return;
+
+await signInWithEmailAndPassword(auth, email, password);
+
+saveAccount(auth.currentUser);
+
+alert("Switched to " + email);
+
+renderAccounts();
+
+} catch (e) {
+
+alert(e.message);
+
+}
+
+}
+
+
+function updateProfileUI(user){
+
+const emailEl =
+document.getElementById("profileUserEmail");
+
+const nameEl =
+document.getElementById("profileUserName");
+
+const avatarEl =
+document.getElementById("avatar");
+
+if(!emailEl || !nameEl) return;
+
+if(user){
+
+const name = user.email.split("@")[0];
+
+emailEl.innerText = user.email;
+nameEl.innerText = name;
+
+if(avatarEl){
+avatarEl.src =
+`https://ui-avatars.com/api/?name=${name}&background=0d6efd&color=fff`;
+}
+
+}else{
+
+emailEl.innerText = "Not signed in";
+nameEl.innerText = "Guest";
+
+}
+}
+
+
+
+
+window.addAccount =
+async function(){
+
+const email =
+prompt("Email")
+?.trim();
+
+const password =
+prompt("Password");
+
+if(!email || !password)
+return;
+
+try{
+
+const res =
+await signInWithEmailAndPassword(
+auth,
+email,
+password
+);
+
+saveAccount(
+res.user
+);
+
+alert(
+"Account added"
+);
+
+renderAccounts();
+
+}
+catch(e){
+
+console.log(
+e.code
+);
+
+console.log(
+e.message
+);
+
+alert(
+e.code
+);
+
+}
+};
+
+
+
+// ===============================
+// PROFILE PAGE
+// ===============================
+
+window.myProfile =
+function(){
+
+closeProfile();
+
+document.getElementById(
+"profilePage"
+).style.display =
+"block";
+
+};
+
+
+
+onAuthStateChanged(auth, (user) => {
+
+const ui = {
+  menuName: document.getElementById("menuUserName"),
+  menuEmail: document.getElementById("menuUserEmail"),
+  profileName: document.getElementById("profileUserName"),
+  profileEmail: document.getElementById("profileUserEmail"),
+  avatar: document.getElementById("userAvatar")
+};
+
+if (user) {
+
+const name = user.email.split("@")[0];
+const email = user.email;
+
+
+
+// update UI
+if (ui.menuName) ui.menuName.innerText = name;
+if (ui.menuEmail) ui.menuEmail.innerText = email;
+
+if (ui.profileName) ui.profileName.innerText = name;
+if (ui.profileEmail) ui.profileEmail.innerText = email;
+
+// avatar (Gmail style)
+if (ui.avatar) {
+ui.avatar.src =
+`https://ui-avatars.com/api/?name=${name}&background=0d6efd&color=fff`;
+}
+
+updateProfileUI(user);
+
+renderAccounts();
+loadEmployees();
+loadProducts();
+saveAccount(user);
+loadCustomers();
+loadSuppliers();
+loadExpenses();
+updateDashboard();
+
+} else {
+
+setGuestUI();
+
+}
+
+});
+
+function setGuestUI() {
+
+const elements = [
+"menuUserName",
+"menuUserEmail",
+"profileUserName",
+"profileUserEmail"
+];
+
+elements.forEach(id => {
+const el = document.getElementById(id);
+if (el) el.innerText = (id.includes("Name")) ? "Guest" : "Not signed in";
+});
+
+const avatar = document.getElementById("userAvatar");
+if (avatar) {
+avatar.src =
+"https://ui-avatars.com/api/?name=Guest&background=ccc&color=fff";
+}
+
+}
+
+// ===============================
+// EDIT PROFILE
+// ===============================
+
+window.editProfile =
+function(){
+
+let newName =
+prompt(
+"Enter new name"
+);
+
+if(!newName)
+return;
+
+
+const profileName =
+document.getElementById(
+"profileUserName"
+);
+
+if(profileName){
+
+profileName.innerText =
+newName;
+
+}
+
+alert(
+"Profile updated"
+);
+
+};
+
+// ===============================
+// LOGOUT
+// ===============================
+
+window.logout =
+async function(){
+
+try{
+
+await signOut(
 auth
+);
+
+const page =
+document.getElementById(
+"profilePage"
+);
+
+if(page){
+
+page.style.display =
+"none";
+
+}
+
+closeProfile();
+
+alert(
+"Logged out"
+);
+
+}
+
+catch(e){
+
+alert(
+e.message
+);
+
+}
+
+};
+
+window.openDashboard = function(){
+
+const dashboard =
+document.getElementById(
+"dashboardTop"
+);
+
+if(!dashboard)
+return;
+
+dashboard.style.display =
+"block";
+
+// funga profile page niba ifunguye
+const profile =
+document.getElementById(
+"profilePage"
+);
+
+if(profile){
+
+profile.style.display =
+"none";
+
+}
+
+closeProfile();
+
+};
+
+window.closeDashboard =
+function(){
+
+document.getElementById(
+"dashboardTop"
+).style.display =
+"none";
 
 };
 
 
+window.updateDashboard = async function () {
 
-// ===============================
-// 🔥 INIT FIREBASE
-// ===============================
+  try {
 
-let visibleSuppliers = 5;
-let currentSupplier = null;
-let pressTimer;
-let saleItems = [];
-let totalPurchases = 0;
-let totalProducts = 0;
-let currentCustomer = null;
-let customerSaleItems = [];
-let payrollData = [];
-// ===============================
-// 🔥 REALTIME SUPPLIERS
-// ===============================
-onSnapshot(collection(db,"suppliers"), snap => {
+    if (!auth.currentUser) return;
 
-  window.allSuppliers = [];
+    const uid = auth.currentUser.uid;
 
-  snap.forEach(docSnap => {
+    let sales = 0;
+    let expenses = 0;
+    let empPayroll = 0;
+    let supplierPayroll = 0;
 
-    window.allSuppliers.push({
-      id: docSnap.id,
-      ...docSnap.data()
+    // ======================
+    // SALES
+    // ======================
+    const salesSnap = await getDocs(
+  collection(db, "users", uid, "customerHistory")
+);
+
+salesSnap.forEach(docSnap => {
+  const s = docSnap.data();
+  sales += Number(s.total || 0);
+});
+    // ======================
+    // EXPENSES
+    // ======================
+    const expenseSnap = await getDocs(
+      collection(db, "users", uid, "expenses")
+    );
+
+    expenseSnap.forEach(docSnap => {
+      const e = docSnap.data();
+      expenses += Number(e.amount || 0);
     });
 
-  });
+    // ======================
+    // EMPLOYEE PAYROLL
+    // ======================
+    const employeeSnap = await getDocs(
+      collection(db, "users", uid, "employees")
+    );
 
-});
+    employeeSnap.forEach(docSnap => {
 
+      const e = docSnap.data();
 
-// ===============================
-// 🔁 NAVIGATION
-// ===============================
+      if (e.paymentType === "Monthly") {
 
-window.openSection = function(id){
+        const salary = Number(e.salary || 0);
+        const absent = Number(e.absent || 0);
 
-  console.log("Button clicked:", id);
+        empPayroll += salary - (salary / 30 * absent);
 
-  // 🔥 Hisha dashboard na sections zose
-  const allSections = document.querySelectorAll(".section, #dashboardTop");
+      } else {
 
-  allSections.forEach(el => {
-    el.style.display = "none";
-    el.classList.remove("active");
-  });
+        empPayroll +=
+          Number(e.dailyRate || 0) *
+          Number(e.daysWorked || 0);
 
+      }
 
-  const target = document.getElementById(id);
+    });
 
-  if(target){
-    target.style.display = "block";
-    target.classList.add("active");
-  } else {
-    console.error("Section not found:", id);
+    // ======================
+    // SUPPLIER PAYROLL
+    // ======================
+    const supplierSnap = await getDocs(
+      collection(db, "users", uid, "supplierHistory")
+    );
+
+    supplierSnap.forEach(docSnap => {
+      const s = docSnap.data();
+      supplierPayroll += Number(s.total || 0);
+    });
+
+    // ======================
+    // PROFIT
+    // ======================
+    const profit =
+      sales -
+      expenses -
+      empPayroll -
+      supplierPayroll;
+
+    // ======================
+    // SHOW
+    // ======================
+    document.getElementById("dashSales").textContent =
+      sales.toLocaleString() + " BIF";
+
+    document.getElementById("dashExpenses").textContent =
+      expenses.toLocaleString() + " BIF";
+
+    document.getElementById("dashEmpPayroll").textContent =
+      empPayroll.toLocaleString() + " BIF";
+
+    document.getElementById("dashSupplierPayroll").textContent =
+      supplierPayroll.toLocaleString() + " BIF";
+
+    document.getElementById("dashProfit").textContent =
+      profit.toLocaleString() + " BIF";
+
+  } catch (err) {
+
+    console.error("Dashboard Error:", err);
+
   }
 
 };
 
 
-function goBack(){
+window.openSection=function(id){
 
-  // 🔥 Garura dashboard
-  const dashboard = document.getElementById("dashboardTop");
+document
+.querySelectorAll(
+".section"
+)
+.forEach(
+s=>s.style.display="none"
+);
 
-  if(dashboard){
-    dashboard.style.display = "block";
+let el=
+document.getElementById(id);
+
+if(el){
+
+el.style.display=
+"block";
+
+}
+
+};
+
+
+window.openProducts = function(){
+
+document.getElementById("dashboardTop").style.display = "none";
+document.getElementById("productsSection").style.display = "block";
+
+// 🔥 AUTO LOAD WHEN OPENING PAGE
+loadProducts();
+
+};
+
+
+window.saveProduct = async function () {
+
+  try {
+
+    if (!auth.currentUser) {
+      alert("Login First");
+      return;
+    }
+
+    const uid = auth.currentUser.uid;
+
+    let category = document.getElementById("productCategory")?.value;
+
+    let name = document.getElementById("pName")?.value.trim() || "";
+    let buy = document.getElementById("pBuy")?.value || 0;
+    let sell = document.getElementById("pSell")?.value || 0;
+    let qty = document.getElementById("pQty")?.value || 0;
+
+    if (!name) {
+      alert("Enter product name");
+      return;
+    }
+
+    // CHECK IF PRODUCT EXISTS
+    const snap = await getDocs(
+      collection(db, "users", uid, "products")
+    );
+
+    let exists = false;
+
+    snap.forEach(doc => {
+      const p = doc.data();
+
+      if ((p.name || "").trim().toLowerCase() === name.toLowerCase()) {
+        exists = true;
+      }
+    });
+
+    if (exists) {
+      alert("⚠️ Product already exists.");
+      return;
+    }
+
+    // SAVE ONLY IF NOT FOUND
+    await addDoc(
+      collection(db, "users", uid, "products"),
+      {
+        category,
+        name,
+        buy: Number(buy),
+        sell: Number(sell),
+        qty: Number(qty),
+        createdAt: new Date()
+      }
+    );
+
+    alert("✅ Product Saved");
+
+    loadProducts();
+
+  } catch (e) {
+
+    console.log("ERROR:", e);
+    alert("Error: " + e.message);
+
   }
 
-  // 🔥 Hisha sections zose
-  document.querySelectorAll(".section").forEach(sec => {
-    sec.style.display = "none";
-    sec.classList.remove("active");
-  });
+};
 
-}
-
-
-function showMenu(){
-  openSection("mainMenu");
-}
-
-// ===============================
-// 📊 DASHBOARD
-// ===============================
-async function updateDashboard(){
-
-let salesTotal = 0;
-
-let expTotal = 0;
-
-let employeePayroll = 0;
-
-let supplierPayroll = 0;
-
-
-// CHECK LOGIN
-if(!auth.currentUser){
-
-return;
-
-}
-
-const uid =
-auth.currentUser.uid;
-
-
-// 🧾 SALES (customer history)
-const salesSnap =
-await getDocs(
-
-collection(
-db,
-"users",
-uid,
-"customerHistory"
-)
-
-);
-
-salesSnap.forEach(d=>{
-
-salesTotal +=
-Number(
-d.data().total || 0
-);
-
-});
-
-
-// 💸 EXPENSES
-const expSnap =
-await getDocs(
-
-collection(
-db,
-"users",
-uid,
-"expenses"
-)
-
-);
-
-expSnap.forEach(d=>{
-
-expTotal +=
-Number(
-d.data().amount || 0
-);
-
-});
-
-
-// 👤 EMPLOYEE PAYROLL
-const empSnap =
-await getDocs(
-
-collection(
-db,
-"users",
-uid,
-"employees"
-)
-
-);
-
-empSnap.forEach(d=>{
-
-employeePayroll +=
-Number(
-d.data().salary || 0
-);
-
-});
-
-
-// 🚚 SUPPLIER PAYROLL
-const supPaySnap =
-await getDocs(
-
-collection(
-db,
-"users",
-uid,
-"supplierHistory"
-)
-
-);
-
-supPaySnap.forEach(d=>{
-
-supplierPayroll +=
-Number(
-d.data().total || 0
-);
-
-});
-
-
-
-// 💰 PROFIT
-let profit =
-
-salesTotal
-
--
-
-(
-expTotal
-+
-employeePayroll
-+
-supplierPayroll
-);
-
-
-// UI UPDATE
-
-document
-.getElementById(
-"dashSales"
-)
-.innerText =
-
-salesTotal
-.toLocaleString();
-
-
-document
-.getElementById(
-"dashExpenses"
-)
-.innerText =
-
-expTotal
-.toLocaleString();
-
-
-document
-.getElementById(
-"dashEmpPayroll"
-)
-.innerText =
-
-employeePayroll
-.toLocaleString();
-
-
-document
-.getElementById(
-"dashSupplierPayroll"
-)
-.innerText =
-
-supplierPayroll
-.toLocaleString();
-
-
-document
-.getElementById(
-"dashProfit"
-)
-.innerText =
-
-profit
-.toLocaleString();
-
-}
-
-// ===============================
-// 📦 PRODUCTS
-// ===============================
-
-async function saveProduct(){
-
-// CHECK LOGIN
-if(!auth.currentUser){
-alert("Login First");
-return;
-}
-
-const uid = auth.currentUser.uid;
-
-// CATEGORY
-let category = productCategory.value;
-
-// FIELDS
-let name = document.getElementById("pName")?.value || "";
-let buy = document.getElementById("pBuy")?.value || 0;
-let sell = document.getElementById("pSell")?.value || 0;
-let qty = document.getElementById("pQty")?.value || 0;
-
-// VALIDATION
-if(!name){
-alert("Enter product name");
-return;
-}
-
-// SAVE
-await addDoc(
-collection(db,"users",uid,"products"),
-{
-category,
-name,
-buy:Number(buy),
-sell:Number(sell),
-qty:Number(qty),
-createdAt:new Date()
-}
-);
-
-alert("✅ Product Saved");
-
-// REFRESH
-loadProducts();
-}
-
-
-// ===============================
-// CHANGE PRODUCT FIELDS
-// ===============================
 window.changeProductFields = function(){
 
-let type = productCategory.value;
+let type = document.getElementById("productCategory")?.value;
 
-dynamicFields.innerHTML = "";
+let box = document.getElementById("dynamicFields");
+
+if(!box) return;
+
+box.innerHTML = "";
 
 // INVENTORY
 if(type === "inventory"){
 
-dynamicFields.innerHTML = `
+box.innerHTML = `
 <input id="pName" placeholder="Product Name">
 <input id="pBuy" type="number" placeholder="Buy Price">
 <input id="pSell" type="number" placeholder="Sell Price">
@@ -429,20 +894,20 @@ dynamicFields.innerHTML = `
 `;
 }
 
-// RAW
+// RAW MATERIALS
 else if(type === "raw"){
 
-dynamicFields.innerHTML = `
+box.innerHTML = `
 <input id="pName" placeholder="Raw Material Name">
 <input id="pBuy" type="number" placeholder="Buy Price">
 `;
 }
 
-// FINISHED
+// FINISHED GOODS
 else if(type === "finished"){
 
-dynamicFields.innerHTML = `
-<input id="pName" placeholder="Finished Goods Name">
+box.innerHTML = `
+<input id="pName" placeholder="Finished Product Name">
 <input id="pSell" type="number" placeholder="Sell Price">
 `;
 }
@@ -450,21 +915,71 @@ dynamicFields.innerHTML = `
 };
 
 
-let visibleProducts = 5;
+window.closeProducts = function(){
+
+document.getElementById("productsSection").style.display = "none";
+
+};
+
+window.searchProducts = function () {
+
+  const keyword = document
+    .getElementById("productSearch")
+    .value
+    .toLowerCase()
+    .trim();
+
+  document.querySelectorAll(".productItem").forEach(item => {
+
+    const name = (item.dataset.name || "").toLowerCase();
+    const category = (item.dataset.category || "").toLowerCase();
+
+    if (
+      name.includes(keyword) ||
+      category.includes(keyword)
+    ) {
+      item.style.display = "flex";
+    } else {
+      item.style.display = "none";
+    }
+
+  });
+
+};
+
+window.toggleProductSearch = function () {
+
+  const input = document.getElementById("productSearch");
+
+  if (input.style.display === "none" || input.style.display === "") {
+    input.style.display = "block";
+    input.focus();
+  } else {
+    input.style.display = "none";
+    input.value = "";
+    searchProducts();
+  }
+
+};
 
 
-// ===============================
-// LOAD PRODUCTS
-// ===============================
-async function loadProducts(){
+window.loadProducts = async function(){
+
+try{
 
 if(!auth.currentUser) return;
 
 const uid = auth.currentUser.uid;
 
-productList.innerHTML = "";
+const productList =
+document.getElementById("productList");
 
-// GET
+if(!productList){
+return;
+}
+
+productList.innerHTML = "Loading...";
+
 const snap = await getDocs(
 collection(db,"users",uid,"products")
 );
@@ -478,66 +993,64 @@ id: docSnap.id,
 });
 });
 
-products.reverse();
+products.sort((a, b) => a.name.localeCompare(b.name));
 
-let visible = products.slice(0, visibleProducts);
+const total = document.getElementById("productTotal");
 
-visible.forEach(p=>{
+if (total) {
+  total.innerHTML = `📦 Total Products: ${products.length}`;
+}
 
-productList.innerHTML += `
-<div class="card" style="
+let html = "";
+
+products.forEach(p=>{
+
+html += `
+<div class="productItem"
+data-id="${p.id}"
+data-name="${p.name}"
+data-category="${p.category || ""}"
+data-buy="${p.buy || 0}"
+data-sell="${p.sell || 0}"
+data-qty="${p.qty || 0}"
+
+style="
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:12px;
-border-radius:14px;
+padding:14px;
 margin-bottom:8px;
+border-radius:12px;
+background:#f5f5f5;
+cursor:pointer;
 ">
 
-<div class="productInfo"
-data-id="${p.id}"
-data-name="${p.name}"
-data-buy="${p.buy||0}"
-data-sell="${p.sell||0}"
-data-qty="${p.qty||0}"
-data-category="${p.category||''}"
-style="flex:1;cursor:pointer;">
-
-<div style="font-size:16px;font-weight:bold;color:#222;">
+<div style="font-weight:bold;">
 ${p.name}
 </div>
 
-<div style="font-size:13px;color:gray;margin-top:3px;">
-Qty: ${p.qty||0}
+<div style="
+background:#0d6efd;
+color:white;
+padding:4px 10px;
+border-radius:20px;
+font-size:13px;
+">
+${p.qty || 0}
 </div>
-
-</div>
-
-<button class="deleteBtn"
-data-id="${p.id}"
-style="padding:6px 10px;background:#ff4d4f;border:none;border-radius:8px;">
-✕
-</button>
 
 </div>
 `;
+
 });
 
+productList.innerHTML =
+html || "<p>No products</p>";
 
-// SEE MORE
-if(visibleProducts < products.length){
-
-productList.innerHTML += `
-<button onclick="showMoreProducts()" style="margin-top:10px;">
-See More
-</button>
-`;
-}
-
-
-// EVENTS
-document.querySelectorAll(".productInfo").forEach(item=>{
+// CLICK EVENT (VIEW)
+document.querySelectorAll(".productItem").forEach(item=>{
 item.onclick = function(){
+
 openProductView(
 this.dataset.id,
 this.dataset.name,
@@ -546,112 +1059,242 @@ this.dataset.buy,
 this.dataset.sell,
 this.dataset.qty
 );
+
 };
 });
 
-document.querySelectorAll(".deleteBtn").forEach(btn=>{
-btn.onclick = async function(){
+}catch(e){
 
-let id = this.dataset.id;
+console.log("LOAD ERROR:", e);
+alert(e.message);
 
-if(confirm("Delete Product?")){
+}
+
+};
+
+
+window.openProductView = function(id,name,category,buy,sell,qty){
+
+document.getElementById("productsSection").style.display = "none";
+
+let view = document.getElementById("productView");
+
+view.innerHTML = `
+<div style="padding:20px;">
+
+<h2>${name}</h2>
+
+<p>📂 Category: ${category}</p>
+<p>📦 Quantity: ${qty}</p>
+<p>💰 Buy: ${buy}</p>
+<p>💵 Sell: ${sell}</p>
+
+<!-- ACTION BUTTONS -->
+<div style="margin-top:20px; display:flex; gap:10px;">
+
+<button onclick="editProduct('${id}')" style="
+flex:1;
+padding:12px;
+border:none;
+background:#0d6efd;
+color:white;
+border-radius:10px;
+">
+✏️ Edit
+</button>
+
+<button onclick="deleteProduct('${id}')" style="
+flex:1;
+padding:12px;
+border:none;
+background:#ff4d4f;
+color:white;
+border-radius:10px;
+">
+🗑 Delete
+</button>
+
+</div>
+
+<!-- CLOSE -->
+<button onclick="closeProductView()" style="
+margin-top:15px;
+width:100%;
+padding:12px;
+border:none;
+background:#ddd;
+border-radius:10px;
+">
+Close
+</button>
+
+</div>
+`;
+
+document.getElementById("productViewSection").style.display = "block";
+
+};
+
+
+window.closeProductView = function(){
+
+document.getElementById("productViewSection").style.display = "none";
+
+document.getElementById("productsSection").style.display = "block";
+
+};
+
+window.deleteProduct = async function(id){
+
+if(!confirm("Delete this product?")) return;
 
 const uid = auth.currentUser.uid;
+
+try{
 
 await deleteDoc(
 doc(db,"users",uid,"products",id)
 );
 
+alert("Deleted");
+
+// refresh list
 loadProducts();
+
+// close view
+closeProductView();
+
+}catch(e){
+alert(e.message);
 }
+
 };
+
+window.editProduct = function(id){
+
+let newName = prompt("New Product Name:");
+let newQty = prompt("New Quantity:");
+
+if(!newName || !newQty) return;
+
+const uid = auth.currentUser.uid;
+
+updateDoc(
+doc(db,"users",uid,"products",id),
+{
+name: newName,
+qty: Number(newQty)
+}
+).then(()=>{
+
+alert("Updated");
+
+loadProducts();
+closeProductView();
+
 });
 
+};
+
+
+// =========================
+// SUPPLIERS PAGE
+// =========================
+
+window.openSuppliers = function () {
+
+const page =
+document.getElementById(
+"suppliersSection"
+);
+
+if(page){
+
+page.style.display =
+"block";
+
 }
 
-// ===============================
-// 🔥 SHOW MORE PRODUCTS
-// ===============================
-window.showMoreProducts = function(){
-
-  visibleProducts += 25;
-
-  loadProducts();
-
 };
 
 
-// ===============================
-// 🔍 PRODUCT VIEW
-// ===============================
-window.openProductView = function(
-  id,
-  name,
-  type,
-  buy,
-  sell,
-  qty
-){
+window.closeSuppliers = function () {
 
-  openSection("productViewSection");
+const page =
+document.getElementById(
+"suppliersSection"
+);
 
-  productView.innerHTML = `
+if(page){
 
-    <div class="card">
+page.style.display =
+"none";
 
-      <h2>${name}</h2>
-
-      <br>
-
-      📦 Type: ${type}<br><br>
-
-      💰 Buy Price: ${buy}<br><br>
-
-      🛒 Sell Price: ${sell}<br><br>
-
-      📊 Quantity: ${qty}
-
-    </div>
-
-  `;
 }
 
-// ===============================
-// 🚚 SUPPLIERS
-// ===============================
+};
 
-window.openSuppliers = async function(){
 
-  document.getElementById("suppliersSection").style.display = "block";
 
-  await loadSuppliers();
+
+// =========================
+// ADD SUPPLIER POPUP
+// =========================
+
+window.openAddSupplier =
+function(){
+
+const popup =
+document.getElementById(
+"addSupplierPopup"
+);
+
+if(popup){
+
+popup.style.display =
+"block";
+
+}
 
 };
 
-window.openAddSupplier = function () {
-  document.getElementById("addSupplierPopup").style.display = "block";
+
+window.closeAddSupplier =
+function(){
+
+const popup =
+document.getElementById(
+"addSupplierPopup"
+);
+
+if(popup){
+
+popup.style.display =
+"none";
+
+}
+
 };
 
-window.closeAddSupplier = function () {
-  document.getElementById("addSupplierPopup").style.display = "none";
-};
+
+
 
 // =========================
 // SAVE SUPPLIER
 // =========================
 
-window.saveSupplier = async function(){
-
-const btn =
-document.getElementById(
-"saveSupplierBtn"
-);
+window.saveSupplier =
+async function(){
 
 try{
 
-if(!auth.currentUser){
+if(
+!auth.currentUser
+){
 
-alert("Login First");
+alert(
+"Login First"
+);
 
 return;
 
@@ -660,53 +1303,43 @@ return;
 const uid =
 auth.currentUser.uid;
 
+const name =
+document
+.getElementById(
+"sName"
+)
+?.value
+.trim();
 
-// LOADING
-btn.innerText =
-"Saving...";
+const phone =
+document
+.getElementById(
+"sPhone"
+)
+?.value
+.trim();
 
-btn.disabled =
-true;
-
-
-let file =
-sPhoto.files[0];
+const location =
+document
+.getElementById(
+"sLocation"
+)
+?.value
+.trim();
 
 
 if(
-!sName.value
-||
-!sPhone.value
+!name
 ){
 
 alert(
-"⚠️ Name and Phone are required"
+"Enter supplier name"
 );
 
 return;
 
 }
 
-
-let supplierData = {
-
-name:
-sName.value,
-
-phone:
-sPhone.value,
-
-location:
-sLocation.value || "",
-
-createdAt:
-new Date()
-
-};
-
-
-const saveToDB =
-async()=>{
 
 await addDoc(
 
@@ -717,408 +1350,259 @@ uid,
 "suppliers"
 ),
 
-supplierData
+{
+
+name,
+phone,
+location,
+createdAt:
+new Date()
+
+}
 
 );
 
-await loadSuppliers();
+
+alert(
+"✅ Supplier Saved"
+);
+
+loadSuppliers();
+
 
 closeAddSupplier();
 
-clearSupplierForm();
 
-alert(
-"✔ Supplier saved successfully!"
-);
+document.getElementById(
+"sName"
+).value="";
 
-};
+document.getElementById(
+"sPhone"
+).value="";
 
-
-// PHOTO
-if(file){
-
-let reader =
-new FileReader();
-
-reader.onload =
-async function(){
-
-supplierData.photo =
-reader.result;
-
-await saveToDB();
-
-};
-
-reader.readAsDataURL(
-file
-);
+document.getElementById(
+"sLocation"
+).value="";
 
 }
+catch(e){
 
-else{
-
-supplierData.photo =
-"";
-
-await saveToDB();
-
-}
-
-}
-
-catch(error){
-
-console.error(
-error
+console.log(
+e
 );
 
 alert(
-error.message
+"Error: "
++
+e.message
 );
-
-}
-
-finally{
-
-btn.innerText =
-"💾 Save";
-
-btn.disabled =
-false;
 
 }
 
 };
 
+window.searchSuppliers =
+function(){
 
-// =========================
-// SEARCH SUPPLIERS
-// =========================
+const q =
+document
+.getElementById(
+"supplierSearch"
+)
+.value
+.toLowerCase()
+.trim();
 
-window.searchSuppliers = async function () {
+const cards =
+document.querySelectorAll(
+"#supplierList > div"
+);
 
-  // CHECK LOGIN
-  if (!auth.currentUser) {
+cards.forEach(
+card=>{
 
-    alert("Login First");
+const text =
+card.innerText
+.toLowerCase();
 
-    return;
+card.style.display =
 
+text.includes(q)
+
+?
+
+"flex"
+
+:
+
+"none";
+
+}
+
+);
+
+};
+
+
+window.toggleSupplierSearch = function () {
+
+  const input = document.getElementById("supplierSearch");
+
+  if (input.style.display === "none" || input.style.display === "") {
+    input.style.display = "block";
+    input.focus();
+  } else {
+    input.style.display = "none";
+    input.value = "";
+    searchSuppliers();
   }
 
-  const uid = auth.currentUser.uid;
+};
 
-  const q =
-    document
-      .getElementById("supplierSearch")
-      .value
-      .toLowerCase();
 
-  const box =
-    document.getElementById("supplierList");
-
-  box.innerHTML = "Loading...";
+window.loadSuppliers = async function () {
 
   try {
 
-    const snap =
-      await getDocs(
+    const list = document.getElementById("supplierList");
 
-        collection(
-          db,
-          "users",
-          uid,
-          "suppliers"
-        )
+    if (!auth.currentUser) {
 
-      );
-
-    box.innerHTML = "";
-
-    let suppliers = [];
-
-    snap.forEach(docSnap => {
-
-      suppliers.push({
-
-        id: docSnap.id,
-
-        ...docSnap.data()
-
-      });
-
-    });
-
-    suppliers.reverse();
-
-    let filtered =
-      suppliers.filter(s => {
-
-        const name =
-          (s.name || "")
-          .toLowerCase();
-
-        const location =
-          (s.location || "")
-          .toLowerCase();
-
-        return (
-          name.includes(q) ||
-          location.includes(q)
-        );
-
-      });
-
-    if (filtered.length === 0) {
-
-      box.innerHTML = `
-
-        <div style="
-          text-align:center;
-          color:#777;
-          padding:15px;
-        ">
-
-          No suppliers found
-
-        </div>
-
+      list.innerHTML = `
+      <div style="
+      padding:30px;
+      text-align:center;
+      color:#888;
+      ">
+      🚚 Login first
+      </div>
       `;
 
       return;
-
     }
 
-    filtered.forEach(s => {
+    const uid = auth.currentUser.uid;
 
-      box.innerHTML += `
+    list.innerHTML = `
+    <div style="
+    padding:20px;
+    text-align:center;
+    color:#666;
+    ">
+    Loading...
+    </div>
+    `;
 
-        <div
-
-          onclick="openSupplierView('${s.id}')"
-
-          style="
-            background:white;
-            padding:10px;
-            border-radius:8px;
-            margin-bottom:8px;
-            box-shadow:0 1px 4px rgba(0,0,0,.1);
-            cursor:pointer;
-
-            display:flex;
-
-            justify-content:space-between;
-
-            align-items:center;
-          "
-
-        >
-
-          <b>
-
-            ${s.name || ""}
-
-          </b>
-
-          <span style="
-            color:#666;
-            font-size:13px;
-          ">
-
-            📍 ${s.location || "No location"}
-
-          </span>
-
-        </div>
-
-      `;
-
-    });
-
-  }
-
-  catch (error) {
-
-    console.error(error);
-
-    box.innerHTML =
-      "Error loading suppliers";
-
-  }
-
-};
-
-
-// =========================
-// LOAD SUPPLIERS
-// =========================
-async function loadSuppliers() {
-
-  // CHECK LOGIN
-  if (!auth.currentUser) {
-
-    return;
-
-  }
-
-  const uid =
-    auth.currentUser.uid;
-
-  const box =
-    document.getElementById(
-      "supplierList"
+    const snap = await getDocs(
+      collection(db, "users", uid, "suppliers")
     );
 
-  box.innerHTML =
-    "Loading...";
+    list.innerHTML = "";
 
-  try {
+    if (snap.empty) {
 
-    const snap =
-      await getDocs(
-
-        collection(
-          db,
-          "users",
-          uid,
-          "suppliers"
-        )
-
-      );
-
-    box.innerHTML = "";
-
-    let suppliers = [];
-
-    snap.forEach(docSnap => {
-
-      suppliers.push({
-
-        id:
-          docSnap.id,
-
-        ...docSnap.data()
-
-      });
-
-    });
-
-    // NEWEST FIRST
-    suppliers.reverse();
-
-    let visible =
-      suppliers.slice(
-        0,
-        visibleSuppliers
-      );
-
-    visible.forEach(s => {
-
-      box.innerHTML += `
-
-        <div
-
-          onclick="openSupplierView('${s.id}')"
-
-          style="
-            background:white;
-            padding:10px;
-            border-radius:8px;
-            margin-bottom:8px;
-            box-shadow:0 1px 4px rgba(0,0,0,.1);
-            cursor:pointer;
-
-            display:flex;
-
-            justify-content:space-between;
-
-            align-items:center;
-          "
-
-        >
-
-          <b>
-
-            ${s.name || ""}
-
-          </b>
-
-          <span style="
-            color:#666;
-            font-size:13px;
-          ">
-
-            📍
-            ${s.location || "No location"}
-
-          </span>
-
-        </div>
-
+      list.innerHTML = `
+      <div style="
+      padding:30px;
+      text-align:center;
+      color:#888;
+      ">
+      🚚 No suppliers yet
+      </div>
       `;
 
-    });
-
-    // SHOW MORE
-    if (
-      visibleSuppliers <
-      suppliers.length
-    ) {
-
-      box.innerHTML += `
-
-        <button
-
-          onclick="showMoreSuppliers()"
-
-          style="
-            width:100%;
-            padding:10px;
-            border:none;
-            background:#eee;
-            border-radius:8px;
-            margin-top:10px;
-          "
-
-        >
-
-          See More
-
-        </button>
-
-      `;
-
+      return;
     }
 
-  }
+    // Save suppliers in array
+    let suppliers = [];
 
-  catch (error) {
+    snap.forEach((doc) => {
+      suppliers.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
 
-    console.error(error);
+    // Sort A-Z
+    suppliers.sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, {
+        sensitivity: "base"
+      })
+    );
+// Show total suppliers
+const total = document.getElementById("supplierTotal");
 
-    box.innerHTML =
-      "Error loading suppliers";
-
-  }
-
+if (total) {
+  total.innerHTML = `🚚 Total Suppliers: ${suppliers.length}`;
 }
 
+    // Display suppliers
+    suppliers.forEach((s) => {
 
-// =========================
-// SHOW MORE
-// =========================
-window.showMoreSuppliers = function () {
-  visibleSuppliers += 25;
-  loadSuppliers();
+      list.insertAdjacentHTML(
+        "beforeend",
+        `
+        <div
+        onclick="openSupplierProfile('${s.id}')"
+        style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:14px;
+        margin-top:10px;
+        border-radius:14px;
+        background:white;
+        box-shadow:0 2px 10px rgba(0,0,0,.06);
+        cursor:pointer;
+        ">
+
+          <div>
+            <div style="
+            font-weight:700;
+            font-size:15px;
+            ">
+            🚚 ${s.name || "-"}
+            </div>
+          </div>
+
+          <div style="
+          font-size:13px;
+          color:#777;
+          ">
+          📍 ${s.location || "-"}
+          </div>
+
+        </div>
+        `
+      );
+
+    });
+
+  } catch (e) {
+
+    console.log(e);
+
+    document.getElementById("supplierList").innerHTML = `
+    <div style="
+    padding:20px;
+    text-align:center;
+    color:red;
+    ">
+    Failed loading suppliers
+    </div>
+    `;
+
+  }
+
 };
 
-
 // =========================
-// OPEN SUPPLIER VIEW
+// SUPPLIER PROFILE
 // =========================
 
-window.openSupplierView = async function (id) {
+window.openSupplierProfile = async function (id) {
 
   // CHECK LOGIN
   if (!auth.currentUser) {
@@ -1193,73 +1677,90 @@ font-family:Arial;
 position:relative;
 ">
 
+<!-- TOP BAR -->
 <div style="
-position:absolute;
-top:10px;
-right:10px;
 display:flex;
-gap:8px;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
 ">
 
-<button
-onclick="menuEdit()"
+  <!-- BACK -->
+  <button
+  onclick="closeSupplierProfile()"
+  style="
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:50%;
+  background:#f5f5f5;
+  cursor:pointer;
+  font-size:16px;
+  ">
+    🔙
+  </button>
 
-style="
-width:32px;
-height:32px;
-border:none;
-border-radius:50%;
-background:#4CAF50;
-color:white;
-cursor:pointer;
-">
+  <!-- EDIT + DELETE -->
+  <div style="
+  display:flex;
+  gap:8px;
+  ">
 
-✏️
+    <button
+    onclick="menuEdit()"
+    style="
+    width:36px;
+    height:36px;
+    border:none;
+    border-radius:50%;
+    background:#4CAF50;
+    color:white;
+    cursor:pointer;
+    ">
+      ✏️
+    </button>
 
-</button>
+    <button
+    onclick="menuDelete()"
+    style="
+    width:36px;
+    height:36px;
+    border:none;
+    border-radius:50%;
+    background:#f44336;
+    color:white;
+    cursor:pointer;
+    ">
+      🗑
+    </button>
 
-<button
-onclick="menuDelete()"
-
-style="
-width:32px;
-height:32px;
-border:none;
-border-radius:50%;
-background:#f44336;
-color:white;
-cursor:pointer;
-">
-
-🗑
-
-</button>
+  </div>
 
 </div>
 
-
+<!-- HEADER -->
 <div style="
 background:#2196F3;
 color:white;
-padding:10px;
-border-radius:10px;
+padding:18px;
+border-radius:12px;
 text-align:center;
 ">
 
+<div style="font-size:40px;">🚚</div>
+
 <h3 style="
-margin:0;
-font-size:16px;
+margin:8px 0 0;
+font-size:18px;
 ">
-
 ${s.name || ""}
-
 </h3>
 
 </div>
 
-
+<!-- INFO -->
 <div style="
-margin-top:10px;
+margin-top:12px;
 display:flex;
 flex-direction:column;
 gap:8px;
@@ -1267,70 +1768,61 @@ gap:8px;
 
 <div style="
 background:#f5f5f5;
-padding:8px;
-border-radius:8px;
+padding:10px;
+border-radius:10px;
 ">
-
-📞
-${s.phone || "No phone"}
-
+📞 ${s.phone || "No phone"}
 </div>
 
 <div style="
 background:#f5f5f5;
-padding:8px;
-border-radius:8px;
+padding:10px;
+border-radius:10px;
 ">
-
-📍
-${s.location || "No location"}
-
+📍 ${s.location || "No location"}
 </div>
 
 </div>
 
-
-<button
-
-onclick="openSaleBuilder()"
-
-style="
-width:100%;
+<div style="
+display:flex;
+gap:10px;
 margin-top:15px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:#FF9800;
-color:white;
-cursor:pointer;
 ">
 
-💰 New Sale
+  <button
+  onclick="openSaleBuilder()"
+  style="
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#FF9800;
+  color:white;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+  ">
+    💰 New Sale
+  </button>
 
-</button>
-
-
-<button
-
-onclick="openSupplierHistory()"
-
-style="
-width:100%;
-margin-top:10px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:#673AB7;
-color:white;
-cursor:pointer;
-">
-
-📋 History
-
-</button>
+  <button
+  onclick="openSupplierHistory()"
+  style="
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#673AB7;
+  color:white;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+  ">
+    📋 History
+  </button>
 
 </div>
-
 `;
 
   }
@@ -1344,6 +1836,30 @@ cursor:pointer;
     );
 
   }
+
+};
+
+
+window.closeSupplierProfile = function () {
+
+  document.getElementById("supplierProfile").style.display = "none";
+  document.getElementById("suppliersSection").style.display = "block";
+
+};
+
+
+window.gobacksuppliers =
+function(){
+
+document.getElementById(
+"supplierProfile"
+).style.display =
+"none";
+
+document.getElementById(
+"suppliersSection"
+).style.display =
+"block";
 
 };
 
@@ -1416,502 +1932,565 @@ window.menuDelete = async function () {
 
 
 
-window.menuEdit = async function () {
 
-  try {
+window.menuEdit =
+async function(){
 
-    if (!auth.currentUser) {
+try{
 
-      alert("Login First");
+if(
+!auth.currentUser
+){
 
-      return;
+alert(
+"Login First"
+);
 
-    }
+return;
 
-    if (!currentSupplier || !currentSupplier.id) {
+}
 
-      alert("No supplier selected");
+if(
+!currentSupplier
+){
 
-      return;
+alert(
+"No supplier selected"
+);
 
-    }
+return;
 
-    const uid =
-      auth.currentUser.uid;
+}
 
-    let newName =
-      prompt(
-        "Supplier Name",
-        currentSupplier.name || ""
-      );
 
-    if (!newName) return;
+const old =
+document.getElementById(
+"supplierEditPopup"
+);
 
-    let newPhone =
-      prompt(
-        "Phone",
-        currentSupplier.phone || ""
-      );
+if(old){
 
-    let newLocation =
-      prompt(
-        "Location",
-        currentSupplier.location || ""
-      );
+old.remove();
 
-    await updateDoc(
+}
 
-      doc(
-        db,
-        "users",
-        uid,
-        "suppliers",
-        currentSupplier.id
-      ),
 
-      {
-        name: newName,
-        phone: newPhone,
-        location: newLocation
-      }
+document.body
+.insertAdjacentHTML(
 
-    );
+"beforeend",
 
-    alert("Updated successfully ✅");
+`
 
-    // refresh view
-    openSupplierView(currentSupplier.id);
+<div
+id="supplierEditPopup"
 
-  }
+style="
+position:fixed;
+inset:0;
 
-  catch (err) {
+background:
+rgba(0,0,0,.45);
 
-    console.error(err);
+display:flex;
 
-    alert("Error updating supplier ❌");
+align-items:center;
 
-  }
+justify-content:center;
+
+z-index:99999;
+">
+
+<div style="
+width:92%;
+max-width:360px;
+
+background:white;
+
+border-radius:18px;
+
+overflow:hidden;
+">
+
+<div style="
+padding:14px;
+
+background:
+linear-gradient(
+135deg,
+#2196F3,
+#1565C0
+);
+
+color:white;
+
+font-size:18px;
+">
+
+✏️ Edit Supplier
+
+</div>
+
+
+<div style="
+padding:14px;
+">
+
+<input
+id="editSupplierName"
+
+value="${currentSupplier.name||""}"
+
+placeholder="Supplier Name"
+
+style="
+width:100%;
+padding:12px;
+
+margin-bottom:10px;
+
+border:1px solid #ddd;
+
+border-radius:10px;
+
+box-sizing:border-box;
+">
+
+
+<input
+id="editSupplierPhone"
+
+value="${currentSupplier.phone||""}"
+
+placeholder="Phone"
+
+style="
+width:100%;
+padding:12px;
+
+margin-bottom:10px;
+
+border:1px solid #ddd;
+
+border-radius:10px;
+
+box-sizing:border-box;
+">
+
+
+<input
+id="editSupplierLocation"
+
+value="${currentSupplier.location||""}"
+
+placeholder="Location"
+
+style="
+width:100%;
+padding:12px;
+
+border:1px solid #ddd;
+
+border-radius:10px;
+
+box-sizing:border-box;
+">
+
+
+<div style="
+display:flex;
+gap:10px;
+margin-top:16px;
+">
+
+<button
+
+onclick="
+document
+.getElementById(
+'supplierEditPopup'
+)
+.remove()
+"
+
+style="
+flex:1;
+
+padding:12px;
+
+border:none;
+
+border-radius:10px;
+
+background:#eee;
+">
+
+Cancel
+
+</button>
+
+
+<button
+
+onclick="
+saveSupplierEdit()
+"
+
+style="
+flex:1;
+
+padding:12px;
+
+border:none;
+
+border-radius:10px;
+
+background:#4CAF50;
+
+color:white;
+">
+
+Save
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+`
+
+);
+
+}
+
+catch(e){
+
+console.log(e);
+
+}
 
 };
 
 
-window.openSaleBuilder = async function(){
+window.saveSupplierEdit =
+async function(){
 
-  try{
+try{
 
-    // CHECK LOGIN
-    if(!auth.currentUser){
-      alert("Login First");
-      return;
-    }
+const uid =
+auth.currentUser.uid;
 
-    const uid = auth.currentUser.uid;
 
-    // RESET
-    saleItems = [];
+const name =
+document
+.getElementById(
+"editSupplierName"
+)
+.value
+.trim();
 
-    document.getElementById(
-      "saleItemsList"
-    ).innerHTML = "";
 
-    document.getElementById(
-      "saleBuilder"
-    ).style.display = "block";
+const phone =
+document
+.getElementById(
+"editSupplierPhone"
+)
+.value
+.trim();
 
-    const select =
-      document.getElementById(
-        "saleProduct"
-      );
 
-    select.innerHTML = "";
+const location =
+document
+.getElementById(
+"editSupplierLocation"
+)
+.value
+.trim();
 
-    // GET USER PRODUCTS
-    const snap =
-      await getDocs(
-        collection(
-          db,
-          "users",
-          uid,
-          "products"
-        )
-      );
 
-    let found = false;
+if(!name){
 
-    snap.forEach(docSnap=>{
+alert(
+"Enter supplier name"
+);
 
-      const p =
-        docSnap.data();
+return;
 
-      const category =
-        (
-          p.category ||
-          ""
-        ).toLowerCase();
+}
 
-      // ONLY RAW + INVENTORY
-      const allowed =
-      [
-        "raw",
-        "raw material",
-        "inventory"
-      ];
 
-      if(
-        !allowed.includes(
-          category
-        )
-      ){
-        return;
-      }
+await updateDoc(
 
-      found = true;
+doc(
+db,
+"users",
+uid,
+"suppliers",
+currentSupplier.id
+),
 
-      select.innerHTML += `
+{
 
-        <option value="${docSnap.id}">
+name,
+phone,
+location
 
-          ${p.name}
-          (Qty:
-          ${p.qty || 0})
+}
 
-        </option>
+);
 
-      `;
 
+currentSupplier = {
+
+...currentSupplier,
+
+name,
+phone,
+location
+
+};
+
+
+document
+.getElementById(
+"supplierEditPopup"
+)
+.remove();
+
+
+alert(
+"✅ Updated"
+);
+
+
+openSupplierProfile(
+currentSupplier.id
+);
+
+
+loadSuppliers();
+
+}
+catch(e){
+
+console.log(e);
+
+alert(
+"Update failed"
+);
+
+}
+
+};
+
+window.openSaleBuilder = async function () {
+
+  if (!auth.currentUser) return;
+
+  const uid = auth.currentUser.uid;
+
+  supplierSaleItems = [];
+
+  document.getElementById("supplierSaleBuilder").style.display = "block";
+  document.getElementById("supplierSaleItemsList").innerHTML = "";
+
+  const snap = await getDocs(
+    collection(db, "users", uid, "products")
+  );
+
+  const products = [];
+
+  snap.forEach(doc => {
+    products.push({
+      id: doc.id,
+      ...doc.data()
     });
+  });
 
-    // EMPTY
-    if(!found){
+  allSupplierProducts = products;
 
-      select.innerHTML = `
-
-        <option>
-
-          No Products
-
-        </option>
-
-      `;
-
-    }
-
-  }
-
-  catch(err){
-
-    console.error(err);
-
-    alert(
-      "Failed to load products"
-    );
-
-  }
+// Show products
+renderSupplierProducts(allSupplierProducts);
 
 };
 
+window.allSupplierProducts = [];
 
-window.filterSaleProducts = function(){
 
-  try{
+window.filterSupplierProducts = function () {
 
-    const q =
-      document
-      .getElementById(
-        "productSearch"
-      )
-      .value
-      .toLowerCase()
-      .trim();
+  const box = document.getElementById("supplierProductSearch");
 
-    // CHECK ARRAY
-    if(
-      !window.allSupplierProducts
-      ||
-      !Array.isArray(
-        allSupplierProducts
-      )
-    ){
+  if (!box) return;
 
-      return;
+  const search = box.value.toLowerCase().trim();
 
-    }
-
-    const filtered =
-      allSupplierProducts.filter(
-        p =>
-
-        (
-          p.name ||
-          ""
-        )
-
-        .toLowerCase()
-
-        .includes(q)
-
-      );
-
-    // CHECK FUNCTION
-    if(
-      typeof
-      renderSupplierProducts
-      ===
-      "function"
-    ){
-
-      renderSupplierProducts(
-        filtered
-      );
-
-    }
-
-  }
-
-  catch(err){
-
-    console.error(
-      err
-    );
-
-  }
-
-};
-
-
-window.addSaleItem = async function(){
-
-  try{
-
-    // CHECK LOGIN
-    if(!auth.currentUser){
-
-      alert("Login First");
-
-      return;
-
-    }
-
-    const uid =
-      auth.currentUser.uid;
-
-    // VALUES
-    const productId =
-      document
-      .getElementById(
-        "saleProduct"
-      )
-      .value;
-
-    const qty =
-      Number(
-        document
-        .getElementById(
-          "saleQty"
-        )
-        .value
-      );
-
-    // VALIDATION
-    if(
-      !productId ||
-      qty <= 0
-    ){
-
-      alert(
-        "Select product and enter quantity"
-      );
-
-      return;
-
-    }
-
-    // GET PRODUCT
-    const snap =
-      await getDoc(
-
-        doc(
-          db,
-          "users",
-          uid,
-          "products",
-          productId
-        )
-
-      );
-
-    if(
-      !snap.exists()
-    ){
-
-      alert(
-        "Product not found"
-      );
-
-      return;
-
-    }
-
-    const p =
-      snap.data();
-
-    // STOCK CHECK
-    if(
-      qty >
-      Number(
-        p.qty || 0
-      )
-    ){
-
-      alert(
-        "Quantity exceeds stock"
-      );
-
-      return;
-
-    }
-
-    // SAVE ITEM
-    saleItems.push({
-
-      id:
-      snap.id,
-
-      product:
-      p.name,
-
-      qty:
-      qty,
-
-      buy:
-      Number(
-        p.buy || 0
-      ),
-
-      sell:
-      Number(
-        p.sell || 0
-      )
-
-    });
-
-    // REFRESH
-    renderSaleItems();
-
-    document
-      .getElementById(
-        "saleQty"
-      )
-      .value = "";
-
-  }
-
-  catch(err){
-
-    console.error(
-      err
-    );
-
-    alert(
-      "Failed to add item"
-    );
-
-  }
-
-};
-
-
-function renderSaleItems(){
-
-  const box =
-    document.getElementById(
-      "saleItemsList"
-    );
-
-  if(!box){
+  if (search === "") {
+    renderSupplierProducts(allSupplierProducts);
     return;
   }
 
-  let html = "";
+  const products = allSupplierProducts.filter(p =>
+    (p.name || "").toLowerCase().includes(search)
+  );
 
-  let total = 0;
+  renderSupplierProducts(products);
 
-  // EMPTY
-  if(
-    !saleItems ||
-    saleItems.length === 0
-  ){
+};
 
-    box.innerHTML = `
+window.renderSupplierProducts = function(products) {
 
+  const box = document.getElementById("supplierProductsList");
+  box.innerHTML = "";
+
+  products.forEach(p => {
+
+    box.innerHTML += `
       <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
         padding:10px;
-        text-align:center;
-        color:#777;
+        border-bottom:1px solid #eee;
       ">
 
-        No items added
+        <div style="flex:1;">
+          <b>${p.name}</b><br>
+          <small>Stock: ${p.qty || 0}</small>
+        </div>
+
+        <input
+          type="number"
+          data-id="${p.id}"
+          data-name="${p.name}"
+          data-buy="${p.buy || 0}"
+          placeholder="Qty"
+          style="
+            width:70px;
+            padding:6px;
+            border:1px solid #ddd;
+            border-radius:6px;
+          "
+        >
 
       </div>
+    `;
 
+  });
+
+};
+
+
+
+window.closeSupplierSaleBuilder = function () {
+  document.getElementById("supplierSaleBuilder").style.display = "none";
+};
+
+window.supplierSaleItems = [];
+
+
+window.saveSupplierSelectedProducts = function () {
+
+  document.querySelectorAll("#supplierProductsList input[type='number']").forEach(input => {
+
+    const qty = Number(input.value);
+
+    if (qty > 0) {
+
+      const id = input.dataset.id;
+      const existing = supplierSaleItems.find(item => item.id === id);
+
+      if (existing) {
+
+        existing.qty += qty;
+
+      } else {
+
+        supplierSaleItems.push({
+          id: id,
+          product: input.dataset.name,
+          qty: qty,
+          buy: Number(input.dataset.buy)
+        });
+
+      }
+
+      input.value = "";
+
+    }
+
+  });
+
+  renderSupplierSaleItems();
+
+};
+
+
+function renderSupplierSaleItems() {
+
+  const box = document.getElementById("supplierSaleItemsList");
+
+  if (supplierSaleItems.length === 0) {
+
+    box.innerHTML = `
+      <div style="text-align:center;color:#777;">
+        No items added
+      </div>
     `;
 
     return;
-
   }
 
-  saleItems.forEach(item=>{
+  let total = 0;
+  let html = "";
 
-    const qty =
-      Number(
-        item.qty || 0
-      );
+  supplierSaleItems.forEach((item, index) => {
 
-    const buy =
-      Number(
-        item.buy || 0
-      );
-
-    const lineTotal =
-      qty * buy;
-
-    total += lineTotal;
+    const line = item.qty * item.buy;
+    total += line;
 
     html += `
-
       <div style="
-        padding:8px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:10px;
         margin-top:6px;
         background:#f5f5f5;
         border-radius:8px;
       ">
 
-        ${item.product || "Unknown"}
+        <div>
+          <b>${item.product}</b><br>
+          ${item.qty} × ${item.buy}
+          = <b>${line.toLocaleString()} BIF</b>
+        </div>
 
-        :
-
-        ${qty}
-
-        ×
-
-        ${buy.toLocaleString()}
-
-        =
-
-        <b>
-
-          ${lineTotal.toLocaleString()} BIF
-
-        </b>
+        <button
+          onclick="deleteSupplierSaleItem(${index})"
+          style="
+            border:none;
+            background:#f44336;
+            color:white;
+            width:34px;
+            height:34px;
+            border-radius:50%;
+            cursor:pointer;
+          ">
+          🗑
+        </button>
 
       </div>
-
     `;
 
   });
 
   html += `
-
     <div style="
       margin-top:10px;
       padding:10px;
@@ -1919,519 +2498,114 @@ function renderSaleItems(){
       border-radius:8px;
       font-weight:bold;
     ">
-
-      💰 Total:
-
-      ${total.toLocaleString()} BIF
-
+      🚚 Total: ${total.toLocaleString()} BIF
     </div>
-
   `;
 
-  box.innerHTML =
-    html;
+  box.innerHTML = html;
 
 }
 
+window.deleteSupplierSaleItem = function(index) {
 
-window.finishSale = async function(){
+  supplierSaleItems.splice(index, 1);
 
-  try{
-
-    // CHECK LOGIN
-    if(!auth.currentUser){
-
-      alert("Login First");
-
-      return;
-
-    }
-
-    const uid =
-      auth.currentUser.uid;
-
-    // CHECK SUPPLIER
-    if(
-      !currentSupplier
-    ){
-
-      alert(
-        "Select supplier first"
-      );
-
-      return;
-
-    }
-
-    // CHECK ITEMS
-    if(
-      saleItems.length === 0
-    ){
-
-      alert(
-        "Add products first"
-      );
-
-      return;
-
-    }
-
-    // TOTAL
-    let total = 0;
-
-    saleItems.forEach(
-      item=>{
-
-        total +=
-
-        Number(
-          item.buy || 0
-        )
-
-        *
-
-        Number(
-          item.qty || 0
-        );
-
-      }
-    );
-
-    // SAVE HISTORY
-    await addDoc(
-
-      collection(
-        db,
-        "supplierHistory"
-      ),
-
-      {
-
-        supplierId:
-        currentSupplier.id,
-
-        supplierName:
-        currentSupplier.name,
-
-        items:
-        saleItems,
-
-        total:
-        total,
-
-        createdAt:
-        new Date()
-
-      }
-
-    );
-
-    // UPDATE STOCK
-    for(
-      const item
-      of
-      saleItems
-    ){
-
-      const ref =
-      doc(
-
-        db,
-
-        "users",
-
-        uid,
-
-        "products",
-
-        item.id
-
-      );
-
-      const snap =
-      await getDoc(
-        ref
-      );
-
-      if(
-        snap.exists()
-      ){
-
-        const p =
-        snap.data();
-
-        const newQty =
-
-          Number(
-            p.qty || 0
-          )
-
-          +
-
-          Number(
-            item.qty || 0
-          );
-
-        await updateDoc(
-
-          ref,
-
-          {
-
-            qty:
-            newQty
-
-          }
-
-        );
-
-      }
-
-    }
-
-    // RESET
-    saleItems = [];
-
-    document
-    .getElementById(
-      "saleItemsList"
-    )
-    .innerHTML = "";
-
-    document
-    .getElementById(
-      "saleBuilder"
-    )
-    .style.display =
-    "none";
-
-    alert(
-      "✅ Purchase saved + Stock updated"
-    );
-
-    loadProducts();
-
-  }
-
-  catch(err){
-
-    console.error(
-      err
-    );
-
-    alert(
-      "Failed to finish sale"
-    );
-
-  }
+  renderSupplierSaleItems();
 
 };
 
 
+window.finishSupplierSale = async function () {
 
-window.openSupplierHistory = async function(){
+  if (!auth.currentUser) {
+    alert("Login First");
+    return;
+  }
 
-  try{
+  if (!currentSupplier) {
+    alert("Select supplier first");
+    return;
+  }
 
-    // CHECK
-    if(
-      !currentSupplier ||
-      !currentSupplier.id
-    ){
+  if (supplierSaleItems.length === 0) {
+    alert("No products added");
+    return;
+  }
 
-      alert(
-        "No supplier selected"
+  try {
+
+    const uid = auth.currentUser.uid;
+
+    let total = 0;
+
+    supplierSaleItems.forEach(item => {
+      total += Number(item.buy || 0) * Number(item.qty || 0);
+    });
+
+    // SAVE PURCHASE HISTORY
+    await addDoc(
+      collection(db, "users", uid, "supplierHistory"),
+      {
+        supplierId: currentSupplier.id,
+        supplierName: currentSupplier.name,
+        items: supplierSaleItems,
+        total: total,
+        createdAt: new Date()
+      }
+    );
+
+    // UPDATE STOCK
+    for (const item of supplierSaleItems) {
+
+      const ref = doc(
+        db,
+        "users",
+        uid,
+        "products",
+        item.id
       );
 
-      return;
+      const snap = await getDoc(ref);
 
-    }
+      if (snap.exists()) {
 
-    document.getElementById(
-      "supplierProfile"
-    ).style.display =
-    "none";
+        const data = snap.data();
 
-    document.getElementById(
-      "supplierHistorySection"
-    ).style.display =
-    "block";
-
-    const box =
-      document.getElementById(
-        "supplierHistoryList"
-      );
-
-    box.innerHTML =
-      "Loading...";
-
-    let totalPurchases =
-      0;
-
-    let totalProducts =
-      0;
-
-    const snap =
-      await getDocs(
-
-        collection(
-          db,
-          "supplierHistory"
-        )
-
-      );
-
-    let history = [];
-
-    snap.forEach(
-      docSnap=>{
-
-        const h =
-          docSnap.data();
-
-        if(
-          h.supplierId !==
-          currentSupplier.id
-        ){
-
-          return;
-
-        }
-
-        history.push({
-
-          id:
-          docSnap.id,
-
-          ...h
-
+        await updateDoc(ref, {
+          qty: Number(data.qty || 0) + Number(item.qty || 0)
         });
 
       }
 
-    );
-
-    history.reverse();
-
-    box.innerHTML =
-      "";
-
-    if(
-      history.length === 0
-    ){
-
-      box.innerHTML = `
-
-        <div style="
-          text-align:center;
-          padding:15px;
-          color:#777;
-        ">
-
-          No history
-
-        </div>
-
-      `;
-
-      return;
-
     }
 
-    history.forEach(h=>{
+    supplierSaleItems = [];
 
-      totalPurchases +=
-      Number(
-        h.total || 0
-      );
+    document.getElementById("supplierSaleItemsList").innerHTML = "";
+    document.getElementById("supplierSaleBuilder").style.display = "none";
 
-      (
-        h.items ||
-        []
-      ).forEach(
-        item=>{
+    await loadProducts();
+    await updateDashboard();
 
-          totalProducts +=
-          Number(
-            item.qty || 0
-          );
+    alert("✅ Purchase Saved Successfully");
 
-        }
-      );
+  } catch (err) {
 
-      let saleDate =
-      "No Date";
-
-      try{
-
-        if(
-          h.createdAt
-        ){
-
-          saleDate =
-
-          h.createdAt
-
-          .toDate()
-
-          .toLocaleDateString();
-
-        }
-
-      }
-
-      catch{}
-
-      box.innerHTML += `
-
-        <div
-
-        onclick="openHistoryView('${h.id}')"
-
-        style="
-          background:white;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:10px;
-          box-shadow:0 1px 4px rgba(0,0,0,.1);
-          position:relative;
-          cursor:pointer;
-        "
-
-        >
-
-        <button
-
-        onclick="
-        event.stopPropagation();
-
-        deleteSupplierHistory(
-        '${h.id}'
-        )
-
-        "
-
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          width:28px;
-          height:28px;
-          border:none;
-          border-radius:50%;
-          background:#f44336;
-          color:white;
-        "
-
-        >
-
-        🗑
-
-        </button>
-
-        <div>
-
-        📅
-
-        ${saleDate}
-
-        </div>
-
-        <div style="
-          margin-top:5px;
-          color:#4CAF50;
-          font-weight:bold;
-        ">
-
-        💰 Total:
-
-        ${Number(
-          h.total || 0
-        ).toLocaleString()}
-
-        BIF
-
-        </div>
-
-        </div>
-
-      `;
-
-    });
-
-    box.innerHTML = `
-
-      <div style="
-        background:#f5f5f5;
-        padding:10px;
-        border-radius:10px;
-        margin-bottom:15px;
-      ">
-
-      <div>
-
-      💰 Total Purchases:
-
-      ${totalPurchases.toLocaleString()}
-
-      BIF
-
-      </div>
-
-      <div
-
-      onclick="openSupplierProductsSummary()"
-
-      style="
-      margin-top:5px;
-      color:#2196F3;
-      cursor:pointer;
-      font-weight:bold;
-      "
-
-      >
-
-      📦 Total Products:
-
-      ${totalProducts.toLocaleString()}
-
-      </div>
-
-      </div>
-
-    `
-
-    +
-
-    box.innerHTML;
-
-  }
-
-  catch(err){
-
-    console.error(
-      err
-    );
-
-    alert(
-      "Failed to load history"
-    );
+    console.error(err);
+    alert(err.message);
 
   }
 
 };
 
-
-
-window.openSupplierProductsSummary =
+window.openSupplierHistory =
 async function(){
 
 try{
 
 // CHECK
 if(
-!currentSupplier
-||
+!currentSupplier ||
 !currentSupplier.id
 ){
 
@@ -2443,29 +2617,47 @@ return;
 
 }
 
+
+// OPEN PAGE
+document.getElementById(
+"supplierProfile"
+).style.display =
+"none";
+
+document.getElementById(
+"supplierHistorySection"
+).style.display =
+"block";
+
+
 const box =
 document.getElementById(
 "supplierHistoryList"
 );
 
-box.innerHTML =
-"Loading...";
 
-// SUMMARY
-let summary = {};
 
-// GET HISTORY
+let totalPurchases = 0;
+
+let totalProducts = 0;
+
+
+const uid = auth.currentUser.uid;
+
 const snap =
 await getDocs(
-
-collection(
-db,
-"supplierHistory"
-)
-
+  collection(
+    db,
+    "users",
+    uid,
+    "supplierHistory"
+  )
 );
 
-// LOOP
+
+const history = [];
+
+
 snap.forEach(
 docSnap=>{
 
@@ -2473,8 +2665,7 @@ const h =
 docSnap.data();
 
 if(
-h.supplierId
-!==
+h.supplierId !==
 currentSupplier.id
 ){
 
@@ -2482,208 +2673,192 @@ return;
 
 }
 
-// ITEMS
-(
-h.items
-||
-[]
 
-).forEach(
-item=>{
+history.push({
 
-const product =
-item.product
-||
-"Unknown";
+id:
+docSnap.id,
 
-if(
-!summary[
-product
-]
-){
+...h
 
-summary[
-product
-] = {
-
-qty:0,
-
-amount:0
-
-};
-
-}
-
-const qty =
-Number(
-item.qty
-||
-0
-);
-
-const buy =
-Number(
-item.buy
-||
-0
-);
-
-summary[
-product
-]
-.qty
-+=
-qty;
-
-summary[
-product
-]
-.amount
-+=
-(
-qty
-*
-buy
-);
+});
 
 }
 
 );
 
-}
 
-);
+// NEWEST FIRST
+history.reverse();
 
-// HEADER
-let html = `
 
-<button
+box.innerHTML =
+"";
 
-onclick="
-openSupplierHistory()
-"
-
-style="
-margin-bottom:10px;
-padding:8px 12px;
-border:none;
-border-radius:6px;
-background:#eee;
-"
-
->
-
-🔙 Back
-
-</button>
-
-<h3>
-
-📦 Products Summary
-
-</h3>
-
-`;
 
 // EMPTY
 if(
-Object.keys(
-summary
-).length
-===
-0
+history.length === 0
 ){
 
-html += `
+box.innerHTML =
 
+`
 <div style="
-padding:15px;
+padding:30px;
 text-align:center;
 color:#777;
 ">
 
-No products
+📋 No history
 
 </div>
-
 `;
-
-box.innerHTML =
-html;
 
 return;
 
 }
 
-// RENDER
-Object
-.keys(
-summary
-)
 
-.forEach(
-product=>{
+// BUILD CARDS
+history.forEach(
+h=>{
 
-const p =
-summary[
-product
-];
+totalPurchases +=
+Number(
+h.total || 0
+);
 
-html += `
+
+(
+h.items ||
+[]
+
+).forEach(
+item=>{
+
+totalProducts +=
+Number(
+item.qty || 0
+);
+
+}
+);
+
+
+let saleDate =
+"No Date";
+
+
+try{
+
+if(
+h.createdAt
+){
+
+saleDate =
+
+h.createdAt
+.toDate()
+.toLocaleDateString();
+
+}
+
+}
+
+catch{}
+
+
+box.insertAdjacentHTML(
+
+"beforeend",
+
+`
 
 <div
 
-style="
-display:flex;
-justify-content:space-between;
-align-items:center;
+id="history-${h.id}"
 
-background:#f5f5f5;
-
-padding:10px;
-
-border-radius:8px;
-
-margin-bottom:8px;
+onclick="
+openHistoryView(
+'${h.id}'
+)
 "
 
->
-
-<div
 style="
-flex:1;
+background:white;
+
+padding:12px;
+
+border-radius:10px;
+
+margin-bottom:10px;
+
+box-shadow:
+0 2px 8px
+rgba(0,0,0,.08);
+
+position:relative;
+
+cursor:pointer;
 ">
 
-<b>
+<button
 
-${product}
+onclick="
+event.stopPropagation();
 
-</b>
+deleteSupplierHistory(
+'${h.id}'
+)
+"
+
+style="
+position:absolute;
+
+top:10px;
+
+right:10px;
+
+width:30px;
+
+height:30px;
+
+border:none;
+
+border-radius:50%;
+
+background:#f44336;
+
+color:white;
+">
+
+🗑
+
+</button>
+
+
+<div>
+
+📅
+
+${saleDate}
 
 </div>
 
-<div
-style="
-min-width:60px;
-text-align:center;
-">
 
-${Number(
-p.qty
-).toLocaleString()}
+<div style="
+margin-top:6px;
 
-</div>
-
-<div
-style="
-min-width:120px;
-text-align:right;
-color:#4CAF50;
 font-weight:bold;
+
+color:#4CAF50;
 ">
 
+💰
+
 ${Number(
-p.amount
+h.total || 0
 ).toLocaleString()}
 
 BIF
@@ -2692,14 +2867,70 @@ BIF
 
 </div>
 
-`;
+`
+
+);
 
 }
 
 );
 
-box.innerHTML =
-html;
+
+// SUMMARY
+box.insertAdjacentHTML(
+
+"afterbegin",
+
+`
+
+<div style="
+background:#f5f5f5;
+
+padding:12px;
+
+border-radius:12px;
+
+margin-bottom:14px;
+">
+
+<div>
+
+💰 Total Purchases:
+
+${totalPurchases.toLocaleString()}
+
+BIF
+
+</div>
+
+
+<div
+
+onclick="
+openSupplierProductsSummary()
+"
+
+style="
+margin-top:6px;
+
+color:#2196F3;
+
+font-weight:bold;
+
+cursor:pointer;
+">
+
+📦 Total Products:
+
+${totalProducts.toLocaleString()}
+
+</div>
+
+</div>
+
+`
+
+);
 
 }
 
@@ -2710,7 +2941,7 @@ err
 );
 
 alert(
-"Failed to load summary"
+"Failed to load history"
 );
 
 }
@@ -2718,24 +2949,143 @@ alert(
 };
 
 
+window.openSupplierProductsSummary = async function(){
+
+try{
+
+if(!currentSupplier?.id){
+alert("No supplier selected");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+const box = document.getElementById("supplierHistoryList");
+
+let summary = {};
+
+const snap = await getDocs(
+  collection(db,"users",uid,"supplierHistory")
+);
+
+
+snap.forEach(docSnap=>{
+
+const h = docSnap.data();
+
+if(h.supplierId !== currentSupplier.id) return;
+
+
+(h.items || []).forEach(item=>{
+
+const name = item.product || "Unknown";
+
+if(!summary[name]){
+summary[name] = {
+qty:0,
+amount:0
+};
+}
+
+
+const qty = Number(item.qty || 0);
+const buy = Number(item.buy || 0);
+
+
+summary[name].qty += qty;
+summary[name].amount += qty * buy;
+
+
+});
+
+});
+
+
+let html = `
+
+<button onclick="openSupplierHistory()"
+style="
+padding:8px 12px;
+border:none;
+border-radius:8px;
+margin-bottom:10px;
+">
+🔙 Back
+</button>
+
+<h3>📦 Products</h3>
+
+`;
+
+
+if(Object.keys(summary).length === 0){
+
+html += `
+<div style="text-align:center;color:#777;padding:20px;">
+No products
+</div>
+`;
+
+}else{
+
+
+Object.keys(summary).forEach(name=>{
+
+const p = summary[name];
+
+html += `
+
+<div style="
+background:#f5f5f5;
+padding:10px;
+border-radius:8px;
+margin-bottom:8px;
+display:flex;
+justify-content:space-between;
+">
+
+<b>${name}</b>
+
+<span>
+${p.qty}
+</span>
+
+<span style="color:#4CAF50;font-weight:bold;">
+${p.amount.toLocaleString()} BIF
+</span>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+box.innerHTML = html;
+
+
+}catch(err){
+
+console.error(err);
+alert("Failed");
+
+}
+
+};
+
 
 window.deleteSupplierHistory = async function(id){
 
 try{
 
-// CHECK LOGIN
 if(!auth.currentUser){
 alert("Login First");
 return;
 }
 
-const uid =
-auth.currentUser.uid;
-
-
-// CONFIRM
-const ok =
-confirm(
+const ok = confirm(
 "Delete this sale history?"
 );
 
@@ -2743,36 +3093,40 @@ if(!ok){
 return;
 }
 
+const uid = auth.currentUser.uid;
 
-// DELETE
+
+// DELETE REAL DOCUMENT
 await deleteDoc(
-
-doc(
-db,
-"users",
-uid,
-"supplierHistory",
-id
-)
-
+  doc(
+    db,
+    "users",
+    uid,
+    "supplierHistory",
+    id
+  )
 );
 
 
-// REFRESH
+// REMOVE UI
+document
+.getElementById(`history-${id}`)
+?.remove();
+
+
+alert("🗑 History deleted");
+
+
 await openSupplierHistory();
 
-alert(
-"🗑 History deleted"
-);
 
 }
-
 catch(err){
 
 console.error(err);
 
 alert(
-"Error deleting history ❌"
+"Delete failed"
 );
 
 }
@@ -2780,12 +3134,10 @@ alert(
 };
 
 
-
-window.openHistoryView = async function(historyId){
+window.openHistoryView = async function(id){
 
   try{
 
-    // CHECK LOGIN
     if(!auth.currentUser){
       alert("Login First");
       return;
@@ -2793,426 +3145,676 @@ window.openHistoryView = async function(historyId){
 
     const uid = auth.currentUser.uid;
 
-    // GET DOC (USER-BASED PATH)
     const snap = await getDoc(
-      doc(db,"users",uid,"supplierHistory",historyId)
+      doc(
+        db,
+        "users",
+        uid,
+        "supplierHistory",
+        id
+      )
     );
 
-    if(!snap.exists()) return;
+    if(!snap.exists()){
+      alert("History not found");
+      return;
+    }
 
     const h = snap.data();
 
-    let itemsHtml = "";
+    // HIDE HISTORY LIST
+    document.getElementById("supplierHistoryList").style.display = "none";
 
-    (h.items || []).forEach(item => {
+    let detail = document.getElementById("historyDetail");
 
-      const lineTotal =
-        Number(item.qty || 0) *
-        Number(item.buy || 0);
+    if(!detail){
 
-      itemsHtml += `
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          background:#f5f5f5;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:8px;
-          font-size:14px;
+      document.getElementById("supplierHistorySection")
+      .insertAdjacentHTML(
+        "beforeend",
+        `<div id="historyDetail"></div>`
+      );
+
+      detail = document.getElementById("historyDetail");
+    }
+
+    detail.style.display = "block";
+
+    const date = h.createdAt?.toDate
+      ? h.createdAt.toDate().toLocaleString()
+      : "-";
+
+    detail.innerHTML = `
+
+      <button
+        onclick="closeHistoryView()"
+        style="
+          width:40px;
+          height:40px;
+          border:none;
+          border-radius:50%;
+          margin-bottom:10px;
+          background:#eee;
         ">
-
-          <div style="flex:1;">
-            <b>${item.product}</b>
-          </div>
-
-          <div style="min-width:120px;text-align:center;">
-            ${item.qty} × ${Number(item.buy || 0).toLocaleString()}
-          </div>
-
-          <b style="color:#4CAF50;min-width:120px;text-align:right;">
-            ${lineTotal.toLocaleString()} BIF
-          </b>
-
-        </div>
-      `;
-    });
-
-    document.getElementById("supplierHistoryList").innerHTML = `
-      <button onclick="openSupplierHistory()" style="
-        margin-bottom:10px;
-        padding:8px 12px;
-        border:none;
-        border-radius:6px;
-        background:#eee;
-        cursor:pointer;
-      ">
-        🔙 Back
+        🔙
       </button>
 
       <div style="
         background:white;
-        padding:10px;
-        border-radius:10px;
-        box-shadow:0 1px 4px rgba(0,0,0,0.1);
+        padding:15px;
+        border-radius:12px;
+        box-shadow:0 2px 8px rgba(0,0,0,.08);
       ">
 
-        <h3 style="margin-top:0;">📋 Sale Details</h3>
+        <h3 style="margin-top:0;">
+          📋 Purchase Details
+        </h3>
 
-        ${itemsHtml}
+        <div style="margin-bottom:10px;">
+          📅 ${date}
+        </div>
+
+        <div style="
+          font-size:18px;
+          font-weight:bold;
+          color:#4CAF50;
+          margin-bottom:15px;
+        ">
+          💰 ${Number(h.total || 0).toLocaleString()} BIF
+        </div>
 
         <hr>
 
-        <div style="
-          font-size:16px;
-          font-weight:bold;
-          color:#4CAF50;
-          text-align:right;
-        ">
-          💰 Total: ${(h.total || 0).toLocaleString()} BIF
-        </div>
-
-      </div>
-    `;
-
-  } catch(err){
-    console.error(err);
-    alert("Error opening history ❌");
-  }
-
-};
-
-
-
-window.openSupplierPayroll = async function(){
-
-  try{
-
-    // CHECK LOGIN
-    if(!auth.currentUser){
-      alert("Login First");
-      return;
-    }
-
-    const uid = auth.currentUser.uid;
-
-    document.getElementById("suppliersSection").style.display = "none";
-    document.getElementById("supplierPayrollSection").style.display = "block";
-
-    const totalBox = document.getElementById("supplierPayrollTotal");
-    const listBox = document.getElementById("supplierPayrollList");
-
-    totalBox.innerHTML = "";
-    listBox.innerHTML = "";
-
-    let grandTotal = 0;
-    let suppliers = {};
-
-    // 🔥 FIXED PATH (USER BASED)
-    const snap = await getDocs(
-      collection(db,"users",uid,"supplierHistory")
-    );
-
-    snap.forEach(docSnap => {
-
-      const h = docSnap.data();
-
-      const name = h.supplierName || "Unknown";
-      const amount = Number(h.total || 0);
-
-      grandTotal += amount;
-
-      if(!suppliers[name]){
-        suppliers[name] = 0;
-      }
-
-      suppliers[name] += amount;
-    });
-
-    totalBox.innerHTML = `
-      <div style="
-        background:#FFF3E0;
-        padding:12px;
-        border-radius:10px;
-        margin-bottom:10px;
-        font-weight:bold;
-        text-align:center;
-      ">
-        💰 Total Payroll:
-        ${grandTotal.toLocaleString()} BIF
-      </div>
-    `;
-
-    Object.keys(suppliers).forEach(name => {
-
-      listBox.innerHTML += `
-        <div
-          class="supplierPayrollCard"
-          data-name="${name.toLowerCase()}"
-          style="
-            background:white;
-            padding:10px;
-            border-radius:8px;
-            margin-bottom:8px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-          "
-        >
-
-          <div
-            onclick="openSupplierPayrollHistory('${name}')"
-            style="flex:1;cursor:pointer;"
-          >
-            <b style="font-size:14px;color:#2196F3;">
-              ${name}
-            </b>
-          </div>
-
+        ${(h.items || []).map(i => `
           <div style="
-            text-align:right;
-            color:#4CAF50;
-            font-weight:bold;
-            font-size:13px;
+            padding:10px 0;
+            border-bottom:1px solid #eee;
           ">
-            ${suppliers[name].toLocaleString()} BIF
+            <b>📦 ${i.product}</b><br>
+            Qty: ${i.qty}<br>
+            Buy: ${Number(i.buy || 0).toLocaleString()} BIF
           </div>
+        `).join("")}
 
-        </div>
-      `;
-    });
-
-  } catch(err){
-    console.error(err);
-    alert("Error loading payroll ❌");
-  }
-
-};
-
-
-window.openSupplierPayrollHistory = async function(name){
-
-  try{
-
-    if(!auth.currentUser){
-      alert("Login First");
-      return;
-    }
-
-    const uid = auth.currentUser.uid;
-
-    const listBox = document.getElementById("supplierPayrollList");
-    listBox.innerHTML = "";
-
-    let total = 0;
-    let itemsHtml = "";
-
-    const snap = await getDocs(
-      collection(db,"users",uid,"supplierHistory")
-    );
-
-    snap.forEach(docSnap => {
-
-      const h = docSnap.data();
-
-      if(h.supplierName !== name) return;
-
-      total += Number(h.total || 0);
-
-      const date = h.createdAt
-        ? h.createdAt.toDate().toLocaleDateString()
-        : "No date";
-
-      itemsHtml += `
-        <div style="
-          background:#f5f5f5;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:8px;
-        ">
-          📅 ${date}
-          <br>
-          💰 ${Number(h.total || 0).toLocaleString()} BIF
-        </div>
-      `;
-    });
-
-    listBox.innerHTML = `
-      <button onclick="openSupplierPayroll()" style="
-        margin-bottom:10px;
-        padding:8px 12px;
-        border:none;
-        border-radius:6px;
-        background:#eee;
-        cursor:pointer;
-      ">
-        🔙 Back
-      </button>
-
-      <div style="
-        font-weight:bold;
-        margin-bottom:10px;
-      ">
-        ${name} - Total: ${total.toLocaleString()} BIF
       </div>
 
-      ${itemsHtml}
     `;
 
-  } catch(err){
+  }catch(err){
+
     console.error(err);
-    alert("Error loading history ❌");
+    alert("Failed to open history");
+
   }
 
 };
 
+window.closeHistoryView =
+function(){
 
-window.searchSupplierPayroll = function(){
+const detail =
+document.getElementById(
+"historyDetail"
+);
 
-  const input = document.getElementById("supplierPayrollSearch");
+if(
+detail
+){
 
-  if(!input) return;
+detail.style.display =
+"none";
 
-  const q = input.value.toLowerCase().trim();
+}
 
-  const cards = document.querySelectorAll(".supplierPayrollCard");
 
-  cards.forEach(card => {
+document.getElementById(
+"supplierHistoryList"
+).style.display =
+"block";
 
-    const name = (card.dataset.name || "").toLowerCase();
+};
 
-    const match = name.includes(q);
 
-    card.style.display = match ? "flex" : "none";
+// =========================
+// PAYROLL
+// =========================
+
+window.openSupplierPayroll = async function () {
+
+try {
+
+if (!auth.currentUser) {
+alert("Login First");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+document.getElementById("supplierPayrollSection").style.display = "block";
+
+const list = document.getElementById("supplierPayrollList");
+const totalBox = document.getElementById("supplierPayrollTotal");
+
+list.innerHTML = `<div style="padding:20px;text-align:center;">Loading...</div>`;
+
+// LOAD VALUE (IMPORTANT)
+const sort = document.getElementById("payrollSort")?.value || "high";
+
+const search = document.getElementById("supplierPayrollSearch")?.value.toLowerCase().trim() || "";
+
+// GET DATA
+const suppliersSnap = await getDocs(collection(db, "users", uid, "suppliers"));
+const historySnap = await getDocs(
+  collection(db, "users", uid, "supplierHistory")
+);
+// BUILD ARRAY (IMPORTANT)
+let data = [];
+
+suppliersSnap.forEach(docSnap => {
+
+  const s = docSnap.data();
+
+  let total = 0;
+
+  historySnap.forEach(hDoc => {
+
+    const h = hDoc.data();
+
+    if (h.supplierId === docSnap.id) {
+      total += Number(h.total || 0);
+    }
 
   });
 
+  if (total <= 0) return;
+
+  const text = `${s.name} ${s.location || ""}`.toLowerCase();
+
+  if (!text.includes(search)) return;
+
+  data.push({
+    id: docSnap.id,
+    name: s.name,
+    location: s.location,
+    total
+  });
+
+});
+
+// SORT (🔥 FIX)
+if (sort === "high") {
+data.sort((a, b) => b.total - a.total);
+}
+
+if (sort === "low") {
+data.sort((a, b) => a.total - b.total);
+}
+
+if (sort === "az") {
+data.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// CLEAR
+list.innerHTML = "";
+
+let grandTotal = 0;
+
+if (data.length === 0) {
+list.innerHTML = `<div style="padding:20px;text-align:center;color:#777;">No supplier</div>`;
+totalBox.innerHTML = "";
+return;
+}
+
+// RENDER
+data.forEach(s => {
+
+  grandTotal += s.total;
+
+  list.insertAdjacentHTML("beforeend", `
+    <div style="
+      background:white;
+      padding:14px;
+      margin-bottom:10px;
+      border-radius:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+    ">
+
+      <div>
+        <div style="font-weight:bold;">🚚 ${s.name}</div>
+        <div style="font-size:13px;color:#777;">
+          📍 ${s.location || "-"}
+        </div>
+      </div>
+
+      <div style="
+        font-size:16px;
+        font-weight:bold;
+        color:#4CAF50;
+      ">
+        ${s.total.toLocaleString()} BIF
+      </div>
+
+    </div>
+  `);
+
+});
+
+// TOTAL
+totalBox.innerHTML = `
+<div style="
+background:linear-gradient(135deg,#4CAF50,#2E7D32);
+color:white;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
+text-align:center;
+">
+💰 Total Payroll: ${grandTotal.toLocaleString()} BIF
+</div>
+`;
+
+} catch (err) {
+console.log(err);
+alert("Failed");
+}
+
+};
+
+// LIVE SEARCH
+window.searchSupplierPayroll =
+function(){
+
+openSupplierPayroll();
+
+};
+
+
+window.closeSupplierPayroll =
+function(){
+
+document
+.getElementById(
+"supplierPayrollSection"
+)
+.style.display =
+"none";
+
+
+// SUBIRA AHO WARI URI
+const suppliers =
+document.getElementById(
+"suppliersSection"
+);
+
+if(
+suppliers
+){
+
+suppliers.style.display =
+"block";
+
+}
+
+
+// CLEAR SEARCH
+const search =
+document.getElementById(
+"supplierPayrollSearch"
+);
+
+if(
+search
+){
+
+search.value =
+"";
+
+}
+
+
+// CLEAR DATA
+document.getElementById(
+"supplierPayrollList"
+)
+.innerHTML =
+"";
+
+document.getElementById(
+"supplierPayrollTotal"
+)
+.innerHTML =
+"";
+
+};
+
+
+window.openPayrollSettings = function () {
+
+  document.getElementById("payrollSettings").style.display = "flex";
+
+};
+
+window.closePayrollSettings = function () {
+
+  document.getElementById("payrollSettings").style.display = "none";
+
+};
+
+// EXPORT REPORT
+window.exportPayroll = function () {
+
+  const text = document.getElementById("supplierPayrollList").innerText;
+
+  const blob = new Blob([text], {
+    type: "text/plain"
+  });
+
+  const a = document.createElement("a");
+
+  a.href = URL.createObjectURL(blob);
+
+  a.download = "payroll.txt";
+
+  a.click();
+
+};
+
+
+window.printSupplierPayroll = async function () {
+
+  if (!auth.currentUser) {
+    alert("Login First");
+    return;
+  }
+
+  const uid = auth.currentUser.uid;
+
+  try {
+
+    const suppliersSnap = await getDocs(
+      collection(db,"users",uid,"suppliers")
+    );
+
+    const historySnap = await getDocs(
+      collection(db,"users",uid,"supplierHistory")
+    );
+
+
+    let totalPayroll = 0;
+    let rows = "";
+
+
+    suppliersSnap.forEach(docSnap => {
+
+      const s = docSnap.data();
+
+      let total = 0;
+
+
+      historySnap.forEach(hDoc => {
+
+        const h = hDoc.data();
+
+        if(h.supplierId === docSnap.id){
+
+          total += Number(h.total || 0);
+
+        }
+
+      });
+
+
+      if(total <= 0) return;
+
+
+      totalPayroll += total;
+
+
+      rows += `
+
+      <tr>
+
+        <td>${s.name || "-"}</td>
+
+        <td>${s.location || "-"}</td>
+
+        <td>
+        ${total.toLocaleString()} BIF
+        </td>
+
+      </tr>
+
+      `;
+
+
+    });
+
+
+
+    const win = window.open("","_blank");
+
+
+    win.document.write(`
+
+    <html>
+
+    <head>
+
+    <title>Supplier Payroll</title>
+
+    <style>
+
+    body{
+      font-family:Arial;
+      padding:20px;
+    }
+
+    h2{
+      text-align:center;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
+
+    th,td{
+
+      border:1px solid #ccc;
+      padding:10px;
+      text-align:center;
+
+    }
+
+    th{
+      background:#f2f2f2;
+    }
+
+    .total{
+
+      margin-top:20px;
+      text-align:right;
+      font-weight:bold;
+      font-size:18px;
+
+    }
+
+    </style>
+
+    </head>
+
+
+    <body>
+
+
+    <h2>
+    🚚 DukaFlow Supplier Payroll
+    </h2>
+
+
+    <p>
+    Date:
+    ${new Date().toLocaleDateString()}
+    </p>
+
+
+    <table>
+
+    <tr>
+
+    <th>Supplier</th>
+    <th>Location</th>
+    <th>Amount</th>
+
+    </tr>
+
+
+    ${rows}
+
+
+    </table>
+
+
+    <div class="total">
+
+    💰 Total Supplier Payroll:
+    ${totalPayroll.toLocaleString()} BIF
+
+    </div>
+
+
+    </body>
+
+    </html>
+
+    `);
+
+
+    win.document.close();
+
+
+    setTimeout(()=>{
+
+      win.focus();
+      win.print();
+
+    },500);
+
+
+  } catch(err){
+
+    console.error(err);
+    alert(err.message);
+
+  }
+
+};
+ 
+
+// GET SORT OPTION
+window.getPayrollSort = function () {
+
+  const el = document.getElementById("payrollSort");
+
+  return el ? el.value : "high";
+
+};
+
+// GET DATE FILTER
+window.getPayrollDate = function () {
+
+  const el = document.getElementById("payrollDate");
+
+  return el ? el.value : "all";
+
 };
 
 
 
-window.closeSupplierPayroll = function(){
+window.openCustomers = function(){
 
-  const payroll = document.getElementById("supplierPayrollSection");
-  const suppliers = document.getElementById("suppliersSection");
+document.getElementById(
+"customersSection"
+).style.display = "block";
 
-  if(payroll) payroll.style.display = "none";
-  if(suppliers) suppliers.style.display = "block";
+document.getElementById(
+"customerSearch"
+).value = "";
+
+loadCustomers();
 
 };
+
+window.closeCustomers = function(){
+
+document.getElementById("customersSection").style.display = "none";
+
+};
+
 
 
 window.saveCustomer = async function(){
 
-  try{
+try{
 
-    // CHECK LOGIN
-    if(!auth.currentUser){
-      alert("Login First");
-      return;
-    }
+// CHECK LOGIN  
+if(!auth.currentUser){  
+  alert("Login First");  
+  return;  
+}  
 
-    const uid = auth.currentUser.uid;
+const uid = auth.currentUser.uid;  
 
-    const name =
-      document.getElementById("cName").value.trim();
+const name =  
+  document.getElementById("cName").value.trim();  
 
-    const phone =
-      document.getElementById("cPhone").value.trim();
+const phone =  
+  document.getElementById("cPhone").value.trim();  
 
-    const location =
-      document.getElementById("cLocation").value.trim();
+const location =  
+  document.getElementById("cLocation").value.trim();  
 
-    if(!name){
-      alert("Enter customer name");
-      return;
-    }
+if(!name){  
+  alert("Enter customer name");  
+  return;  
+}  
 
-    await addDoc(
-      collection(db,"users",uid,"customers"),
-      {
-        name,
-        phone,
-        location,
-        createdAt: new Date()
-      }
-    );
+await addDoc(  
+  collection(db,"users",uid,"customers"),  
+  {  
+    name,  
+    phone,  
+    location,  
+    createdAt: new Date()  
+  }  
+);  
 
-    document.getElementById("cName").value = "";
-    document.getElementById("cPhone").value = "";
-    document.getElementById("cLocation").value = "";
+document.getElementById("cName").value = "";  
+document.getElementById("cPhone").value = "";  
+document.getElementById("cLocation").value = "";  
 
-    document.getElementById("addCustomerPopup").style.display = "none";
+document.getElementById("addCustomerPopup").style.display = "none";  
 
-    await loadCustomers();
+await loadCustomers();
 
-    alert("✅ Customer Saved");
+alert("✅ Customer Saved");
 
-  }catch(err){
-    console.error(err);
-    alert("Error saving customer ❌");
-  }
+}catch(err){
+console.error(err);
+alert("Error saving customer ❌");
+}
 
 };
-
 
 window.openAddCustomer = function(){
 
 document.getElementById("addCustomerPopup").style.display = "block";
 
 };
-
-
-window.loadCustomers = async function () {
-
-  const box = document.getElementById("customerList");
-
-  // optional loading state
-  box.innerHTML = "Loading...";
-
-  const snap = await getDocs(
-    collection(db, "customers")
-  );
-
-  box.innerHTML = "";
-
-  snap.forEach(docSnap => {
-
-    const c = docSnap.data();
-
-    box.innerHTML += `
-      <div
-        onclick="openCustomerView('${docSnap.id}')"
-        style="
-          background:white;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:8px;
-          box-shadow:0 1px 4px rgba(0,0,0,.1);
-          cursor:pointer;
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-        "
-      >
-
-        <b>
-          ${c.name || ""}
-        </b>
-
-        <span style="
-          color:#666;
-          font-size:13px;
-        ">
-          📍 ${c.location || "No location"}
-        </span>
-
-      </div>
-    `;
-  });
-
-};
-
 
 window.closeCustomerPopup = function(){
 
@@ -3225,301 +3827,328 @@ window.closeCustomerPopup = function(){
 };
 
 
-
-window.openCustomers = function(){
-
-  document.getElementById("customersSection").style.display = "block";
-
-  loadCustomers();
-
-};
-
-
-window.searchCustomers = async function () {
-
-  const q = document
-    .getElementById("customerSearch")
-    .value
-    .toLowerCase()
-    .trim();
-
-  const box = document.getElementById("customerList");
-
-  const snap = await getDocs(
-    collection(db, "customers")
-  );
-
-  box.innerHTML = "";
-
-  let found = false;
-
-  snap.forEach(docSnap => {
-
-    const c = docSnap.data();
-
-    const name = (c.name || "").toLowerCase();
-    const location = (c.location || "").toLowerCase();
-
-    // filter
-    if (!name.includes(q) && !location.includes(q)) return;
-
-    found = true;
-
-    box.innerHTML += `
-      <div
-        onclick="openCustomerView('${docSnap.id}')"
-        style="
-          background:white;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:8px;
-          box-shadow:0 1px 4px rgba(0,0,0,.1);
-          cursor:pointer;
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-        "
-      >
-
-        <b>${c.name || ""}</b>
-
-        <span style="color:#666;font-size:13px;">
-          📍 ${c.location || "No location"}
-        </span>
-
-      </div>
-    `;
-  });
-
-  if (!found) {
-    box.innerHTML = `
-      <div style="
-        text-align:center;
-        color:#777;
-        padding:15px;
-      ">
-        No customers found
-      </div>
-    `;
-  }
-
-};
-
-
-window.openCustomerView = async function (id) {
+window.loadCustomers = async function () {
 
   try {
 
-    const snap = await getDoc(doc(db, "customers", id));
+    if (!auth.currentUser) {
 
-    if (!snap.exists()) {
-      alert("Customer not found");
+      document.getElementById("customerList").innerHTML = `
+      <div style="padding:30px;text-align:center;color:#888;">
+      👤 Login first
+      </div>
+      `;
+
       return;
     }
 
-    const c = snap.data();
+    const uid = auth.currentUser.uid;
 
-    window.currentCustomer = { id, ...c };
+    const list = document.getElementById("customerList");
 
-    document.getElementById("customersSection").style.display = "none";
+    const search = document
+      .getElementById("customerSearch")
+      ?.value
+      .toLowerCase()
+      .trim() || "";
 
-    const profile = document.getElementById("customerProfile");
+    const snap = await getDocs(
+      collection(db, "users", uid, "customers")
+    );
 
-    profile.style.display = "block";
-    profile.style.position = "fixed";
-    profile.style.top = "0";
-    profile.style.left = "0";
-    profile.style.width = "100%";
-    profile.style.height = "100%";
-    profile.style.background = "#fafafa";
-    profile.style.zIndex = "9999";
-    profile.style.overflow = "auto";
+    list.innerHTML = "";
 
-    profile.innerHTML = `
-      <div style="max-width:360px;margin:auto;padding:12px;font-family:Arial;">
+    if (snap.empty) {
 
-        <!-- TOP BAR -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      document.getElementById("customerTotal").innerHTML =
+        "👤 Total Customers: 0";
 
-          <button onclick="closeCustomerProfile()"
-            style="border:none;background:white;border-radius:8px;padding:6px 10px;">
-            🔙
-          </button>
-
-          <button onclick="editCustomer('${id}')"
-            style="border:none;background:#4CAF50;color:white;border-radius:8px;padding:6px 10px;">
-            ✏️
-          </button>
-
-          <button onclick="deleteCustomer('${id}')"
-            style="border:none;background:#f44336;color:white;border-radius:8px;padding:6px 10px;">
-            🗑
-          </button>
-
-        </div>
-
-        <!-- CUSTOMER CARD -->
-        <div style="background:white;padding:12px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);">
-
-          <h3 style="margin:0;font-size:17px;">
-            ${c.name || "No name"}
-          </h3>
-
-          <div style="margin-top:10px;font-size:13px;color:#555;">
-            📞 ${c.phone || "No phone"}
-          </div>
-
-          <div style="margin-top:6px;font-size:13px;color:#555;">
-            📍 ${c.location || "No location"}
-          </div>
-
-        </div>
-
-        <!-- ACTIONS -->
-        <div style="display:flex;gap:8px;margin-top:12px;">
-
-          <button onclick="openCustomerSaleBuilder()"
-            style="flex:1;border:none;border-radius:10px;padding:10px;background:#FF9800;color:white;">
-            💰 Sale
-          </button>
-
-          <button onclick="openCustomerHistory()"
-            style="flex:1;border:none;border-radius:10px;padding:10px;background:#673AB7;color:white;">
-            📋 History
-          </button>
-
-        </div>
-
+      list.innerHTML = `
+      <div style="padding:30px;text-align:center;color:#888;">
+      👤 No customers yet
       </div>
-    `;
+      `;
 
-  } catch (err) {
-    console.error(err);
-    alert("Error: " + err.message);
-  }
+      return;
+    }
 
-};
+    // Save all customers
+    let customers = [];
 
+    snap.forEach(docSnap => {
+      customers.push({
+        id: docSnap.id,
+        ...docSnap.data()
+      });
+    });
 
-window.deleteCustomer = async function () {
-
-  if (!auth.currentUser) {
-    alert("Please login first");
-    return;
-  }
-
-  if (!currentCustomer?.id) {
-    alert("No customer selected");
-    return;
-  }
-
-  const confirmDelete = confirm("Delete this customer?");
-  if (!confirmDelete) return;
-
-  try {
-
-    await deleteDoc(
-      doc(
-        db,
-        "users",
-        auth.currentUser.uid,
-        "customers",
-        currentCustomer.id
-      )
+    // Sort A-Z
+    customers.sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, {
+        sensitivity: "base"
+      })
     );
 
-    alert("Customer deleted");
+    // Total
+    document.getElementById("customerTotal").innerHTML =
+      `👤 Total Customers: ${customers.length}`;
 
-    closeCustomerProfile();
+    let found = 0;
 
-    loadCustomers();
+    customers.forEach(c => {
 
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
-  }
+      const text =
+        `${c.name || ""} ${c.location || ""}`.toLowerCase();
 
-};
+      if (!text.includes(search)) return;
 
+      found++;
 
-window.editCustomer = function () {
+      list.insertAdjacentHTML(
+        "beforeend",
+        `
+        <div
+        onclick="openCustomerView('${c.id}')"
+        style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:12px;
+        margin-top:10px;
+        border-radius:10px;
+        background:white;
+        box-shadow:0 2px 8px rgba(0,0,0,.08);
+        cursor:pointer;
+        ">
 
-  if (!currentCustomer?.id) {
-    alert("No customer selected");
-    return;
-  }
+          <div style="font-weight:bold;">
+          👤 ${c.name}
+          </div>
 
-  const popup = document.getElementById("editCustomerPopup");
-  const nameEl = document.getElementById("editName");
-  const phoneEl = document.getElementById("editPhone");
-  const locationEl = document.getElementById("editLocation");
+          <div style="font-size:13px;color:#666;">
+          📍 ${c.location || "-"}
+          </div>
 
-  if (!popup || !nameEl || !phoneEl || !locationEl) {
-    console.error("Edit popup elements missing in HTML");
-    alert("UI error: missing edit form");
-    return;
-  }
+        </div>
+        `
+      );
 
-  const c = currentCustomer;
+    });
 
-  popup.style.display = "block";
+    if (found === 0) {
 
-  nameEl.value = c.name || "";
-  phoneEl.value = c.phone || "";
-  locationEl.value = c.location || "";
+      list.innerHTML = `
+      <div style="padding:30px;text-align:center;color:#888;">
+      🔍 No customer found
+      </div>
+      `;
 
-};
-
-
-window.updateCustomer = async function () {
-
-  if (!auth.currentUser) {
-    alert("Please login first");
-    return;
-  }
-
-  if (!currentCustomer?.id) return;
-
-  const name = document.getElementById("editName").value;
-  const phone = document.getElementById("editPhone").value;
-  const location = document.getElementById("editLocation").value;
-
-  if (!name) {
-    alert("Name required");
-    return;
-  }
-
-  try {
-
-    await updateDoc(
-      doc(
-        db,
-        "users",
-        auth.currentUser.uid,
-        "customers",
-        currentCustomer.id
-      ),
-      {
-        name,
-        phone,
-        location
-      }
-    );
-
-    alert("Updated successfully");
-
-    closeEditCustomer();
-
-    openCustomerView(currentCustomer.id);
-
-    loadCustomers();
+    }
 
   } catch (err) {
-    console.error(err);
-    alert(err.message);
+
+    console.log(err);
+    alert("Failed to load customers");
+
   }
 
 };
+
+
+window.searchCustomers = function(){
+
+loadCustomers();
+
+};
+
+window.toggleCustomerSearch = function () {
+
+  const input = document.getElementById("customerSearch");
+
+  if (input.style.display === "none" || input.style.display === "") {
+    input.style.display = "block";
+    input.focus();
+  } else {
+    input.style.display = "none";
+    input.value = "";
+    searchCustomers();
+  }
+
+};
+
+window.openCustomerView = async function (id) {
+
+try {
+
+if (!auth.currentUser) {
+alert("Login First");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+// 🔥 FIXED PATH
+const snap = await getDoc(
+doc(db, "users", uid, "customers", id)
+);
+
+if (!snap.exists()) {
+alert("Customer not found");
+return;
+}
+
+const c = snap.data();
+
+window.currentCustomer = {
+  id: id,
+  name: c.name,
+  phone: c.phone,
+  location: c.location
+};
+
+document.getElementById("customersSection").style.display = "none";
+
+const profile = document.getElementById("customerProfile");
+
+profile.style.display = "block";
+profile.style.position = "fixed";
+profile.style.top = "0";
+profile.style.left = "0";
+profile.style.width = "100%";
+profile.style.height = "100%";
+profile.style.background = "#fafafa";
+profile.style.zIndex = "9999";
+profile.style.overflow = "auto";
+
+profile.innerHTML = `
+
+<div style="max-width:360px;margin:auto;padding:12px;font-family:Arial;">  <!-- TOP BAR -->  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">  <button onclick="closeCustomerProfile()"  
+style="border:none;background:white;border-radius:8px;padding:6px 10px;">
+🔙
+</button>
+
+<button onclick="editCustomer('${id}')"  
+style="border:none;background:#4CAF50;color:white;border-radius:8px;padding:6px 10px;">
+✏️
+</button>
+
+<button onclick="deleteCustomer('${id}')"  
+style="border:none;background:#f44336;color:white;border-radius:8px;padding:6px 10px;">
+🗑
+</button>
+
+</div>  <!-- CUSTOMER CARD -->  <div style="background:white;padding:12px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);">  <h3 style="margin:0;font-size:17px;">  
+${c.name || "No name"}  
+</h3>  <div style="margin-top:10px;font-size:13px;color:#555;">  
+📞 ${c.phone || "No phone"}  
+</div>  <div style="margin-top:6px;font-size:13px;color:#555;">  
+📍 ${c.location || "No location"}  
+</div>  </div>  <!-- ACTIONS -->  <div style="display:flex;gap:8px;margin-top:12px;">  <button onclick="openCustomerSaleBuilder()"  
+style="flex:1;border:none;border-radius:10px;padding:10px;background:#FF9800;color:white;">
+💰 Sale
+</button>
+
+<button onclick="openCustomerHistory()"  
+style="flex:1;border:none;border-radius:10px;padding:10px;background:#673AB7;color:white;">
+📋 History
+</button>
+
+</div>  </div>  
+`;  } catch (err) {
+console.error(err);
+alert("Error: " + err.message);
+}
+
+};
+
+
+window.editCustomer = async function(id){
+
+try{
+
+if(!auth.currentUser){
+alert("Login First");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+// GET CURRENT DATA
+const snap = await getDoc(
+doc(db, "users", uid, "customers", id)
+);
+
+if(!snap.exists()){
+alert("Customer not found");
+return;
+}
+
+const c = snap.data();
+
+// INPUTS
+let newName = prompt("Customer Name", c.name || "");
+if(!newName) return;
+
+let newPhone = prompt("Phone", c.phone || "");
+let newLocation = prompt("Location", c.location || "");
+
+// UPDATE
+await updateDoc(
+doc(db, "users", uid, "customers", id),
+{
+name: newName,
+phone: newPhone,
+location: newLocation
+}
+);
+
+alert("✅ Customer updated");
+
+// refresh view
+openCustomerView(id);
+
+}catch(err){
+console.log(err);
+alert("Failed to update customer");
+}
+
+};
+
+window.deleteCustomer = async function(id){
+
+try{
+
+if(!auth.currentUser){
+alert("Login First");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+// CONFIRM
+const ok = confirm("Delete this customer?");
+if(!ok) return;
+
+// DELETE
+await deleteDoc(
+doc(db, "users", uid, "customers", id)
+);
+
+alert("🗑 Customer deleted");
+
+// back to list
+document.getElementById("customerProfile").style.display = "none";
+document.getElementById("customersSection").style.display = "block";
+
+loadCustomers();
+
+}catch(err){
+console.log(err);
+alert("Failed to delete customer");
+}
+
+};
+
 
 
 window.closeEditCustomer = function(){
@@ -3531,199 +4160,222 @@ window.closeCustomerProfile = function(){
   document.getElementById("customersSection").style.display = "block";
 };
 
-
 window.openCustomerSaleBuilder = async function () {
 
-  customerSaleItems = [];
+try {
 
-  document.getElementById("customerSaleItemsList").innerHTML = "";
+if (!auth.currentUser) {
+alert("Login First");
+return;
+}
 
-  document.getElementById("customerSaleBuilder").style.display = "block";
+const uid = auth.currentUser.uid;
 
-  const box = document.getElementById("customerProductsList");
+customerSaleItems = [];
 
-  box.innerHTML = "Loading...";
+document.getElementById("customerSaleItemsList").innerHTML = "";
 
-  const snap = await getDocs(
-    collection(db, "products")
-  );
+document.getElementById("customerSaleBuilder").style.display = "block";
 
-  box.innerHTML = "";
+const box = document.getElementById("customerProductsList");
 
-  let found = false;
+box.innerHTML = "Loading...";
 
-  snap.forEach(docSnap => {
+// 🔥 FIXED PATH
+const snap = await getDocs(
+collection(db, "users", uid, "products")
+);
 
-    const p = docSnap.data();
-    found = true;
+box.innerHTML = "";
 
-    box.innerHTML += `
-      <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        background:#f5f5f5;
-        padding:10px;
-        margin-bottom:8px;
-        border-radius:8px;
-      ">
+let found = false;
 
-        <div>
-          <b>${p.name || ""}</b><br>
-          <small>Stock: ${p.qty || 0}</small>
-        </div>
+snap.forEach(docSnap => {
 
-        <input
-          type="number"
-          min="0"
-          placeholder="Qty"
-          class="customerQty"
-          data-name="${p.name}"
-          data-sell="${p.sell || 0}"
-          style="
-            width:70px;
-            padding:6px;
-            text-align:center;
-          "
-        >
+  const p = docSnap.data();
 
+  // ❌ Ntugaragaze Raw Materials
+  if (p.category === "raw") return;
+  found = true;
+
+  box.innerHTML += `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:#f5f5f5;
+      padding:10px;
+      margin-bottom:8px;
+      border-radius:8px;
+    ">
+
+      <div>
+        <b>${p.name || ""}</b><br>
+        <small>
+          Stock: ${p.qty || 0}
+        </small>
       </div>
-    `;
-  });
 
-  if (!found) {
-    box.innerHTML = `
-      <div style="text-align:center;color:#777;padding:10px;">
-        No products available
-      </div>
-    `;
-  }
+      <input
+        type="number"
+        min="0"
+        max="${p.qty || 0}"
+        placeholder="Qty"
+        class="customerQty"
+        data-id="${docSnap.id}"
+        data-name="${p.name}"
+        data-sell="${p.sell || 0}"
+        data-stock="${p.qty || 0}"
+        style="
+          width:70px;
+          padding:6px;
+          text-align:center;
+        "
+      >
+
+    </div>
+  `;
+});
+if (!found) {
+box.innerHTML = `
+<div style="text-align:center;color:#777;padding:10px;">
+No products available
+</div>
+`;
+}
+
+}catch(err){
+console.log(err);
+alert("Failed to load products");
+}
 
 };
 
 
 window.loadCustomerProducts = async function () {
 
-  const box = document.getElementById("customerProductsList");
+const uid = auth.currentUser.uid;
 
-  box.innerHTML = "Loading...";
+const box = document.getElementById("customerProductsList");
 
-  const snap = await getDocs(collection(db, "products"));
+box.innerHTML = "Loading...";
 
-  box.innerHTML = "";
+const snap = await getDocs(
+collection(db, "users", uid, "products")
+);
 
-  let found = false;
+box.innerHTML = "";
 
-  snap.forEach(docSnap => {
+snap.forEach(docSnap => {
 
-    const p = docSnap.data();
-    found = true;
+  const p = docSnap.data();
 
-    box.innerHTML += `
-      <div style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        padding:3px 0;
-        font-size:13px;
-      ">
+  // ❌ Ntugaragaze Raw Materials
+  if (p.category === "raw") return;
 
-        <span>
-          ${p.name || ""} (${p.qty || 0})
-        </span>
+  box.innerHTML += `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      padding:6px;
+      font-size:13px;
+    ">
 
-        <input
-          type="number"
-          min="0"
-          class="customerQty"
-          data-name="${p.name}"
-          data-sell="${p.sell || 0}"
-          data-stock="${p.qty || 0}"
-          placeholder="0"
-          style="
-            width:45px;
-            padding:2px;
-            text-align:center;
-            border:1px solid #ddd;
-            border-radius:3px;
-            font-size:12px;
-          "
-        >
+      <span>
+        ${p.name} (${p.qty})
+      </span>
 
-      </div>
-    `;
-  });
+      <input
+        type="number"
+        class="customerQty"
+        data-id="${docSnap.id}"
+        data-name="${p.name}"
+        data-sell="${p.sell || 0}"
+        data-stock="${p.qty || 0}"
+        placeholder="0"
+        style="
+          width:50px;
+          text-align:center;
+        ">
+    </div>
+  `;
+});
 
-  if (!found) {
-    box.innerHTML = `
-      <div style="text-align:center;color:#777;padding:10px;">
-        No products found
-      </div>
-    `;
+};
+
+window.closeCustomerSaleBuilder = function () {
+
+  document.getElementById("customerSaleBuilder").style.display = "none";
+
+  // optional cleanup (iba fresh next time)
+  if (document.getElementById("customerProductsList")) {
+    document.getElementById("customerProductsList").innerHTML = "";
   }
+
+  if (document.getElementById("customerSaleItemsList")) {
+    document.getElementById("customerSaleItemsList").innerHTML = "";
+  }
+
+  customerSaleItems = [];
+
 };
 
 
 window.filterCustomerSaleProducts = function () {
 
-  const input = document.getElementById("customerProductSearch");
-  const list = document.getElementById("customerProductsList");
+const q = document
+.getElementById("customerProductSearch")
+.value.toLowerCase();
 
-  if (!input || !list) return;
+document.querySelectorAll(".customerQty")
+.forEach(input => {
 
-  const q = input.value.toLowerCase();
+const name = (input.dataset.name || "").toLowerCase();
 
-  list.querySelectorAll("div").forEach(item => {
+const row = input.parentElement;
 
-    const text = (item.textContent || "").toLowerCase();
+row.style.display = name.includes(q) ? "flex" : "none";
 
-    item.style.display = text.includes(q) ? "flex" : "none";
-
-  });
+});
 
 };
-
 
 window.saveSelectedProducts = function () {
 
   const inputs = document.querySelectorAll(".customerQty");
 
   let added = 0;
-  let hasError = false;
 
-  inputs.forEach(input => {
+  for (let input of inputs) {
 
     const qty = Number(input.value || 0);
     const stock = Number(input.dataset.stock || 0);
 
-    if (qty <= 0) return;
+    if (qty <= 0) continue;
 
     if (stock > 0 && qty > stock) {
       alert(`${input.dataset.name} stock is only ${stock}`);
-      hasError = true;
       return;
     }
 
-    // optional: prevent duplicates
     const existing = customerSaleItems.find(
-      i => i.product === input.dataset.name
+      i => i.id === input.dataset.id
     );
 
     if (existing) {
       existing.qty += qty;
     } else {
       customerSaleItems.push({
+        id: input.dataset.id,
         product: input.dataset.name,
         qty: qty,
-        sell: Number(input.dataset.sell)
+        sell: Number(input.dataset.sell || 0)
       });
     }
 
     input.value = "";
     added++;
-  });
-
-  if (hasError) return; // stop if stock issues
+  }
 
   if (added === 0) {
     alert("No products selected");
@@ -3737,10 +4389,10 @@ window.saveSelectedProducts = function () {
 
 };
 
-
 window.addCustomerSaleItem = function () {
 
-  const product = document.getElementById("customerSaleProduct").value;
+  const select = document.getElementById("customerSaleProduct");
+  const product = select.value;
   const qty = Number(document.getElementById("customerSaleQty").value);
 
   if (!product || qty <= 0) {
@@ -3748,26 +4400,24 @@ window.addCustomerSaleItem = function () {
     return;
   }
 
-  // get selected option (to access price/stock if stored)
-  const selectedOption = document.querySelector(
-    `#customerSaleProduct option[value="${product}"]`
-  );
+  const option = select.options[select.selectedIndex];
 
-  const sell = Number(selectedOption?.dataset?.sell || 0);
-  const stock = Number(selectedOption?.dataset?.stock || 0);
+  const id = option?.dataset?.id;
+  const sell = Number(option?.dataset?.sell || 0);
+  const stock = Number(option?.dataset?.stock || 0);
 
   if (stock > 0 && qty > stock) {
     alert(`Stock only available: ${stock}`);
     return;
   }
 
-  // prevent duplicates
-  const existing = customerSaleItems.find(i => i.product === product);
+  const existing = customerSaleItems.find(i => i.id === id);
 
   if (existing) {
     existing.qty += qty;
   } else {
     customerSaleItems.push({
+      id,
       product,
       qty,
       sell
@@ -3784,7 +4434,7 @@ window.renderCustomerSaleItems = function () {
 
   const box = document.getElementById("customerSaleItemsList");
 
-  if (!customerSaleItems || customerSaleItems.length === 0) {
+  if (!customerSaleItems.length) {
     box.innerHTML = `
       <div style="text-align:center;color:#777;padding:10px;">
         No items selected
@@ -3793,18 +4443,14 @@ window.renderCustomerSaleItems = function () {
     return;
   }
 
-  let html = "";
-  let grandTotal = 0;
+  let total = 0;
 
-  customerSaleItems.forEach((item, index) => {
+  let html = customerSaleItems.map((item, index) => {
 
-    const qty = Number(item.qty || 0);
-    const sell = Number(item.sell || 0);
+    const line = item.qty * item.sell;
+    total += line;
 
-    const lineTotal = qty * sell;
-    grandTotal += lineTotal;
-
-    html += `
+    return `
       <div style="
         display:flex;
         justify-content:space-between;
@@ -3813,24 +4459,17 @@ window.renderCustomerSaleItems = function () {
         padding:10px;
         border-radius:8px;
         margin-bottom:8px;
-        font-size:14px;
       ">
 
-        <div style="flex:1;">
-          ${item.product} (${qty})
+        <div>
+          ${item.product} (${item.qty})
         </div>
 
-        <div style="
-          width:90px;
-          text-align:center;
-          font-weight:bold;
-          color:#4CAF50;
-        ">
-          ${lineTotal.toLocaleString()}
+        <div style="color:#4CAF50;font-weight:bold;">
+          ${line.toLocaleString()}
         </div>
 
-        <button
-          onclick="removeCustomerSaleItem(${index})"
+        <button onclick="removeCustomerSaleItem(${index})"
           style="
             border:none;
             background:#ffebee;
@@ -3838,42 +4477,37 @@ window.renderCustomerSaleItems = function () {
             width:28px;
             height:28px;
             border-radius:50%;
-            cursor:pointer;
           ">
           🗑
         </button>
 
       </div>
     `;
-  });
+  }).join("");
 
   html += `
     <div style="
-      margin-top:10px;
       padding:10px;
       background:#E8F5E9;
       border-radius:8px;
       font-weight:bold;
       text-align:right;
     ">
-      💰 Total: ${grandTotal.toLocaleString()} BIF
+      💰 Total: ${total.toLocaleString()} BIF
     </div>
   `;
 
   box.innerHTML = html;
 };
 
-
-window.removeCustomerSaleItem = function(index){
-  customerSaleItems.splice(index,1);
+window.removeCustomerSaleItem = function (index) {
+  customerSaleItems.splice(index, 1);
   renderCustomerSaleItems();
 };
 
-
-
 window.finishCustomerSale = async function () {
 
-  if (!currentCustomer?.id) {
+  if (!window.currentCustomer?.id) {
     alert("No customer selected");
     return;
   }
@@ -3885,49 +4519,53 @@ window.finishCustomerSale = async function () {
 
   try {
 
-    let total = 0;
-
-    // GET ALL PRODUCTS ONCE
-    const snap = await getDocs(collection(db, "products"));
+    const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "products"));
 
     const productsMap = {};
 
     snap.forEach(docSnap => {
-      productsMap[docSnap.data().name] = {
+      productsMap[docSnap.id] = {
         id: docSnap.id,
         ...docSnap.data()
       };
     });
 
+    let total = 0;
+
     for (let item of customerSaleItems) {
 
-      const p = productsMap[item.product];
+      const p = productsMap[item.id];
 
       if (!p) continue;
 
-      // 🚨 STOCK CHECK
+      // stock check
       if ((p.qty || 0) < item.qty) {
         alert(`${item.product} stock is not enough`);
         return;
       }
 
-      // UPDATE STOCK
-      await updateDoc(doc(db, "products", p.id), {
+      // update stock
+      await updateDoc(doc(db, "users", auth.currentUser.uid, "products", p.id), {
         qty: (p.qty || 0) - item.qty
       });
 
-      total += Number(p.sell || 0) * Number(item.qty);
+      // ✅ SAFE TOTAL CALC
+      const price = Number(p.sell || 0);
+      const qty = Number(item.qty || 0);
+
+      total += price * qty;
     }
 
-    // SAVE HISTORY
-    await addDoc(collection(db, "customerHistory"), {
-      customerId: currentCustomer.id,
-      customerName: currentCustomer.name,
-      items: customerSaleItems,
-      total,
-      createdAt: new Date()
-    });
-
+    await addDoc(
+  collection(db, "users", auth.currentUser.uid, "customerHistory"),
+  {
+    customerId: window.currentCustomer.id,
+    customerName: window.currentCustomer.name,
+    items: customerSaleItems,
+    total: Number(total),
+    createdAt: new Date()
+  }
+);
     customerSaleItems = [];
 
     document.getElementById("customerSaleBuilder").style.display = "none";
@@ -3945,161 +4583,468 @@ window.finishCustomerSale = async function () {
 
 window.openCustomerHistory = async function () {
 
-  if (!currentCustomer?.id) {
+  if (!window.currentCustomer?.id) {
     alert("No customer selected");
     return;
   }
 
+  const uid = auth.currentUser.uid;
+
   document.getElementById("customerHistorySection").style.display = "block";
 
   const box = document.getElementById("customerHistoryList");
-  box.innerHTML = "Loading...";
-
-  const snap = await getDocs(collection(db, "customerHistory"));
-
-  let total = 0;
-  let html = "";
-
-  snap.forEach(d => {
-
-    const h = d.data();
-
-    if (h.customerId !== currentCustomer.id) return;
-
-    const value = Number(h.total || 0);
-    total += value;
-
-    const date = h.createdAt
-      ? h.createdAt.toDate().toLocaleDateString()
-      : "";
-
-    html += `
-      <div onclick="openCustomerHistoryView('${d.id}')"
-        style="
-          background:white;
-          padding:10px;
-          border-radius:10px;
-          margin-bottom:8px;
-          box-shadow:0 1px 4px rgba(0,0,0,.08);
-          cursor:pointer;
-        ">
-
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-
-          <div>
-            <div style="font-size:12px;color:#777;">
-              📅 ${date}
-            </div>
-
-            <div style="
-              font-size:14px;
-              font-weight:bold;
-              color:#2e7d32;
-            ">
-              ${value.toLocaleString()} BIF
-            </div>
-          </div>
-
-          <button onclick="event.stopPropagation(); deleteCustomerHistory('${d.id}')"
-            style="
-              width:28px;
-              height:28px;
-              border:none;
-              border-radius:50%;
-              background:#f44336;
-              color:white;
-              cursor:pointer;
-            ">
-            🗑
-          </button>
-
-        </div>
-
-      </div>
-    `;
-  });
 
   box.innerHTML = `
-    <div style="
-      background:#e8f5e9;
-      padding:10px;
-      border-radius:10px;
-      margin-bottom:10px;
-      font-weight:bold;
-      text-align:right;
-    ">
-      💰 Total Sales: ${total.toLocaleString()} BIF
-    </div>
-  ` + html;
-
-};
-
-
-window.openCustomerHistoryView = async function (id) {
-
-  const view = document.getElementById("customerHistoryView");
-  const box = document.getElementById("customerHistoryItems");
-
-  if (!view || !box) return;
-
-  view.style.display = "block";
-  box.innerHTML = "Loading...";
-
-  const snap = await getDoc(doc(db, "customerHistory", id));
-
-  if (!snap.exists()) {
-    box.innerHTML = "<p>History not found</p>";
-    return;
-  }
-
-  const h = snap.data();
-
-  let total = 0;
-  let html = "";
-
-  (h.items || []).forEach(item => {
-
-    const line = Number(item.qty || 0) * Number(item.sell || 0);
-    total += line;
-
-    html += `
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;">
-        <span>${item.product} (${item.qty})</span>
-        <span>${line.toLocaleString()} BIF</span>
-      </div>
-    `;
-  });
-
-  const finalTotal = (typeof h.total === "number") ? h.total : total;
-
-  box.innerHTML = html + `
-    <div style="margin-top:10px;font-weight:bold;text-align:right;">
-      💰 Total: ${finalTotal.toLocaleString()} BIF
+    <div style="text-align:center;padding:20px;color:#777;">
+      Loading history...
     </div>
   `;
-};
-
-
-window.deleteCustomerHistory = async function (id) {
-
-  if (!id) return;
-
-  const ok = confirm("Delete this sale?");
-  if (!ok) return;
 
   try {
 
-    await deleteDoc(doc(db, "customerHistory", id));
+    const snap = await getDocs(
+      query(
+        collection(db, "users", uid, "customerHistory"),
+        where("customerId", "==", window.currentCustomer.id)
+      )
+    );
 
-    // refresh list properly
-    await openCustomerHistory();
+    let totalSales = 0;
+    let totalProducts = 0;
+    let html = "";
 
-    alert("Deleted successfully");
+    snap.forEach(d => {
+
+      const h = d.data();
+
+      totalSales += Number(h.total || 0);
+
+      // products count inside each sale (if exists)
+      if (Array.isArray(h.items)) {
+        totalProducts += h.items.length;
+      }
+
+      const value = Number(h.total || 0);
+
+      const date = h.createdAt
+        ? h.createdAt.toDate().toLocaleDateString()
+        : "-";
+
+      html += `
+        <div
+          onclick="openCustomerHistoryView('${d.id}')"
+          style="
+            background:white;
+            padding:10px;
+            border-radius:10px;
+            margin-bottom:8px;
+            box-shadow:0 1px 4px rgba(0,0,0,.08);
+            cursor:pointer;
+          ">
+
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+
+            <div>
+              <div style="font-size:12px;color:#777;">
+                📅 ${date}
+              </div>
+
+              <div style="font-size:14px;font-weight:bold;color:#2e7d32;">
+                ${value.toLocaleString()} BIF
+              </div>
+            </div>
+
+            <button
+              onclick="event.stopPropagation();deleteCustomerHistory('${d.id}')"
+              style="
+                width:28px;
+                height:28px;
+                border:none;
+                border-radius:50%;
+                background:#f44336;
+                color:white;
+              ">
+              🗑
+            </button>
+
+          </div>
+
+        </div>
+      `;
+    });
+
+    if (!html) {
+      html = `
+        <div style="text-align:center;padding:20px;color:#777;">
+          No history found
+        </div>
+      `;
+    }
+
+    box.innerHTML = `
+
+  <div style="
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:10px;
+  ">
+
+    <!-- TOTAL SALES -->
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:#e3f2fd;
+      padding:8px 10px;
+      border-radius:8px;
+      font-size:13px;
+    ">
+      <span>💰 Total Sales</span>
+      <b>${totalSales.toLocaleString()} BIF</b>
+    </div>
+
+    <!-- TOTAL PRODUCTS -->
+    <div
+      onclick="openCustomerProductsView()"
+      style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        background:#fff3e0;
+        padding:8px 10px;
+        border-radius:8px;
+        font-size:13px;
+        cursor:pointer;
+      ">
+      <span>📦 Total Products</span>
+      <b>${totalProducts}</b>
+    </div>
+
+  </div>
+
+  ${html}
+`;
 
   } catch (err) {
     console.error(err);
     alert(err.message);
   }
+};
+
+
+window.deleteCustomerHistory = async function (id) {
+
+  try {
+
+    if (!auth.currentUser) {
+      alert("Login First");
+      return;
+    }
+
+    const ok = confirm("Delete this sale history?");
+
+    if (!ok) return;
+
+    const uid = auth.currentUser.uid;
+
+    await deleteDoc(
+      doc(
+        db,
+        "users",
+        uid,
+        "customerHistory",
+        id
+      )
+    );
+
+    // Refresh history
+    await openCustomerHistory();
+
+    if (typeof updateDashboard === "function") {
+      await updateDashboard();
+    }
+
+    if (typeof showToast === "function") {
+      showToast("🗑 History deleted", "#f44336");
+    } else {
+      alert("History deleted");
+    }
+
+  } catch (err) {
+
+    console.error(err);
+    alert(err.message);
+
+  }
+
+};
+
+
+window.openCustomerProductsView = async function () {
+
+  if (!window.currentCustomer?.id) return;
+
+  const uid = auth.currentUser.uid;
+  const box = document.getElementById("customerHistoryList");
+
+  box.innerHTML = `
+    <div style="text-align:center;padding:20px;color:#777;">
+      Loading products...
+    </div>
+  `;
+
+  try {
+
+    const snap = await getDocs(
+      query(
+        collection(db, "users", uid, "customerHistory"),
+        where("customerId", "==", window.currentCustomer.id)
+      )
+    );
+
+    let products = [];
+
+    snap.forEach(doc => {
+      const h = doc.data();
+
+      if (Array.isArray(h.items)) {
+        products = products.concat(h.items);
+      }
+    });
+
+    if (products.length === 0) {
+      box.innerHTML = `
+        <div style="text-align:center;padding:20px;color:#777;">
+          No products found
+        </div>
+      `;
+      return;
+    }
+
+    // Merge same products
+    const grouped = {};
+
+    products.forEach(item => {
+
+      const key = item.id || item.product;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          product: item.product,
+          qty: 0,
+          sell: Number(item.sell || 0)
+        };
+      }
+
+      grouped[key].qty += Number(item.qty || 0);
+
+    });
+
+    let html = "";
+
+    Object.values(grouped).forEach(item => {
+
+      const total = item.qty * item.sell;
+
+      html += `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:10px;
+          margin-bottom:8px;
+          background:white;
+          border-radius:10px;
+          box-shadow:0 1px 4px rgba(0,0,0,.08);
+        ">
+
+          <div>
+            <b>${item.product}</b><br>
+            <small style="color:#777;">
+              Qty: ${item.qty}
+            </small>
+          </div>
+
+          <div style="
+            font-weight:bold;
+            color:#2e7d32;
+          ">
+            ${total.toLocaleString()} BIF
+          </div>
+
+        </div>
+      `;
+
+    });
+
+    box.innerHTML = `
+      <div style="
+        background:#e3f2fd;
+        padding:10px;
+        border-radius:10px;
+        margin-bottom:10px;
+        font-weight:bold;
+        text-align:center;
+      ">
+        📦 All Sold Products
+      </div>
+
+      ${html}
+    `;
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
+
+};
+
+
+
+window.openCustomerHistoryView = async function(id){
+
+try{
+
+const uid = auth.currentUser.uid;
+
+const snap = await getDoc(
+doc(db,"users",uid,"customerHistory",id)
+);
+
+if(!snap.exists()){
+alert("History not found");
+return;
+}
+
+const h = snap.data();
+
+let itemsHtml = "";
+
+(h.items || []).forEach(item=>{
+
+itemsHtml += `
+<div style="
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid #eee;
+">
+
+<div>
+<b>${item.product}</b><br>
+<small>
+${item.qty} × ${Number(item.sell).toLocaleString()} BIF
+</small>
+</div>
+
+<div style="
+font-weight:bold;
+color:#4CAF50;
+">
+${(item.qty*item.sell).toLocaleString()} BIF
+</div>
+
+</div>
+`;
+
+});
+
+const date =
+h.createdAt
+? h.createdAt.toDate().toLocaleString()
+: "-";
+
+const box =
+document.getElementById("customerHistoryView");
+
+box.style.display="block";
+
+box.innerHTML=`
+
+<div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:15px;
+">
+
+<button
+onclick="closeCustomerHistoryView()"
+style="
+width:40px;
+height:40px;
+border:none;
+border-radius:50%;
+background:white;
+font-size:18px;
+">
+🔙
+</button>
+
+<h3 style="margin:0;">
+🧾 Sale Details
+</h3>
+
+<div style="width:40px;"></div>
+
+</div>
+
+<div style="
+background:white;
+padding:15px;
+border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+">
+
+<div><b>👤 Customer:</b> ${h.customerName}</div>
+
+<div style="margin-top:8px;">
+<b>📅 Date:</b> ${date}
+</div>
+
+<hr style="margin:15px 0;">
+
+${itemsHtml}
+
+<hr style="margin:15px 0;">
+
+<div style="
+display:flex;
+justify-content:space-between;
+font-size:18px;
+font-weight:bold;
+color:#2E7D32;
+">
+
+<span>Total</span>
+
+<span>
+${Number(h.total).toLocaleString()} BIF
+</span>
+
+</div>
+
+</div>
+
+`;
+
+}catch(err){
+
+console.log(err);
+
+alert(err.message);
+
+}
+
+};
+
+
+window.closeCustomerHistoryView = function(){
+
+document.getElementById("customerHistoryView").style.display = "none";
+
+document.getElementById("customerHistorySection").style.display = "block";
 
 };
 
@@ -4116,16 +5061,6 @@ window.openEmployeeForm = function () {
 
   form.style.display = "block";
 };
-
-
-// ========================
-// PAYMENT TYPE
-// ========================
-
-window.openEmployeeForm = function(){
-  document.getElementById("employeeForm").style.display = "block";
-};
-
 
 
 window.goDashboard = function () {
@@ -4346,6 +5281,21 @@ window.toggleEmployeePayment = function () {
 
 };
 
+window.toggleEmployeeSearch = function () {
+
+  const input = document.getElementById("employeeSearch");
+
+  if (input.style.display === "none" || input.style.display === "") {
+    input.style.display = "block";
+    input.focus();
+  } else {
+    input.style.display = "none";
+    input.value = "";
+    searchEmployees();
+  }
+
+};
+
 
 window.loadEmployees = async function () {
 
@@ -4378,6 +5328,21 @@ window.loadEmployees = async function () {
         )
 
       );
+      
+let employees = [];
+
+snap.forEach(docSnap => {
+  employees.push({
+    id: docSnap.id,
+    ...docSnap.data()
+  });
+});
+
+// SHOW TOTAL
+const totalBox = document.getElementById("employeeTotal");
+if (totalBox) {
+  totalBox.innerHTML = `👨‍💼 Total Employees: ${employees.length}`;
+}
 
     snap.forEach(docSnap => {
 
@@ -4674,7 +5639,7 @@ window.markAbsent = async function (id) {
 
     }
 
-    await loadEmployees();
+  
 
   }
 
@@ -4798,7 +5763,7 @@ window.markPresent = async function (id) {
 
     }
 
-    await loadEmployees();
+  
 
   }
 
@@ -4932,42 +5897,77 @@ window.closePayroll = function () {
 
 };
 
+
 window.loadPayroll = async function () {
+
+  if (!auth.currentUser) {
+    alert("Login First");
+    return;
+  }
+
+  const uid = auth.currentUser.uid;
 
   const box = document.getElementById("payrollList");
   if (!box) return;
 
-  box.innerHTML = "";
+  box.innerHTML = `
+    <div style="text-align:center;padding:20px;color:#777;">
+      Loading payroll...
+    </div>
+  `;
 
-  const snap = await getDocs(collection(db, "employees"));
+  try {
 
-  let grandTotal = 0;
-  payrollData = [];
+    const snap = await getDocs(
+      collection(db, "users", uid, "employees")
+    );
 
-  snap.forEach(d => {
+    let grandTotal = 0;
+    payrollData = [];
 
-    const e = d.data();
+    snap.forEach(doc => {
 
-    let total = 0;
+      const e = doc.data();
 
-    if (e.paymentType === "Monthly") {
-      total = Number(e.salary || 0);
-    } else {
-      total =
-        Number(e.dailyRate || 0) *
-        Number(e.daysWorked || 0);
-    }
+      let total = 0;
 
-    grandTotal += total;
+      if (e.paymentType === "Monthly") {
 
-    payrollData.push({
-      name: e.name,
-      total: total
+  const salary = Number(e.salary || 0);
+  const absent = Number(e.absent || 0);
+
+  const penalty = salary / 30;
+
+  total = salary - (absent * penalty);
+
+  if(total < 0){
+    total = 0;
+  }
+
+} else {
+
+  total =
+    Number(e.dailyRate || 0) *
+    Number(e.daysWorked || 0);
+
+}
+      grandTotal += total;
+
+      payrollData.push({
+        id: doc.id,
+        name: e.name || "",
+        total
+      });
+
     });
 
-  });
+    renderPayroll(payrollData, grandTotal);
 
-  renderPayroll(payrollData, grandTotal);
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
+
 };
 
 function renderPayroll(list, grandTotal) {
@@ -5000,17 +6000,37 @@ function renderPayroll(list, grandTotal) {
         display:flex;
         justify-content:space-between;
         align-items:center;
+        box-shadow:0 1px 4px rgba(0,0,0,.08);
       ">
+
         <b>${e.name}</b>
 
-        <span style="color:#4CAF50;font-weight:bold;">
+        <span style="
+          color:#4CAF50;
+          font-weight:bold;
+        ">
           ${e.total.toLocaleString()} BIF
         </span>
+
       </div>
     `;
+
   });
 
+  if (list.length === 0) {
+    html += `
+      <div style="
+        text-align:center;
+        padding:20px;
+        color:#777;
+      ">
+        No employees found
+      </div>
+    `;
+  }
+
   box.innerHTML = html;
+
 }
 
 
@@ -5149,130 +6169,63 @@ window.openEmployeeView = async function (id) {
 };
 
 
+window.openAttendance = async function(id){
 
-window.openEmployeeView = async function(id) {
-  
-  try {
-    
-    if (!auth.currentUser) {
-      alert("Login First");
-      return;
-    }
-    
-    const uid = auth.currentUser.uid;
-    
-    const profile =
-      document.getElementById("employeeProfile");
-    
-    if (!profile) return;
-    
-    const snap = await getDoc(
-      doc(db, "users", uid, "employees", id)
-    );
-    
-    if (!snap.exists()) {
-      alert("Employee not found");
-      return;
-    }
-    
-    const e = snap.data();
-    
-    profile.style.display = "block";
-    
-    const absentPenalty =
-      (e.absent || 0) * ((e.salary || 0) / 30);
-    
-    const totalMonthly =
-      (e.salary || 0) - absentPenalty;
-    
-    const totalDaily =
-      (e.dailyRate || 0) * (e.daysWorked || 0);
-    
-    profile.innerHTML = `
-      <div style="padding:12px;font-family:Arial;background:#f6f7fb;min-height:100%;">
+  if(!auth.currentUser){
+    alert("Login First");
+    return;
+  }
 
-        <!-- TOP BAR -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  const uid = auth.currentUser.uid;
 
-          <button onclick="closeEmployeeProfile()" style="width:38px;height:38px;border:none;border-radius:50%;background:white;">
-            🔙
-          </button>
+  document.getElementById("employeeProfile").style.display = "none";
+  document.getElementById("attendanceSection").style.display = "block";
 
-          <h3 style="margin:0;font-size:18px;">
-            👨‍💼 ${e.name}
-          </h3>
+  const box = document.getElementById("attendanceList");
+  box.innerHTML = "";
 
-          <div style="display:flex;gap:6px;">
+  const snap = await getDocs(
+    collection(db,"users",uid,"attendance")
+  );
 
-            <button onclick="editEmployee('${id}')" style="width:36px;height:36px;border:none;border-radius:50%;background:#4CAF50;color:white;">✏️</button>
+  let html = "";
 
-            <button onclick="deleteEmployee('${id}')" style="width:36px;height:36px;border:none;border-radius:50%;background:#f44336;color:white;">🗑</button>
+  snap.forEach(docSnap => {
 
-          </div>
+    const a = docSnap.data();
 
-        </div>
+    if(a.employeeId !== id) return;
 
-        <!-- INFO -->
-        <div style="background:white;padding:12px;border-radius:10px;margin-bottom:10px;">
-          <b>${e.name}</b><br>
-          <small>${e.role || ""}</small><br>
-          📞 ${e.phone || ""}
-        </div>
+    const date = a.date?.toDate
+      ? a.date.toDate().toLocaleString()
+      : "-";
 
-        <!-- ATTENDANCE -->
-        <div onclick="openAttendance('${id}')" style="background:white;padding:12px;border-radius:10px;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;">
-          <b>📅 Attendance</b>
-          <span>
-            ❌ ${e.absent || 0} &nbsp; ✔ ${e.present || 0}
-          </span>
-        </div>
-
-        <!-- SALARY -->
-        <div style="background:white;padding:14px;border-radius:10px;">
-
-          <p style="margin:0;">
-            💰 ${
-              e.paymentType === "Monthly"
-                ? `${(e.salary || 0).toLocaleString()} BIF (Monthly)`
-                : `${(e.dailyRate || 0).toLocaleString()} BIF / Day`
-            }
-          </p>
-
-          <hr>
-
-          <div style="display:flex;justify-content:space-between;">
-            <span>💵 Total</span>
-
-            <b style="color:#2e7d32;">
-              ${
-                e.paymentType === "Monthly"
-                  ? totalMonthly.toFixed(0)
-                  : totalDaily.toLocaleString()
-              } BIF
-            </b>
-          </div>
-
-        </div>
-
+    html += `
+      <div style="
+        background:white;
+        padding:12px;
+        margin-bottom:10px;
+        border-radius:10px;
+      ">
+        <b>${a.status === "present" ? "✔ Present" : "❌ Absent"}</b><br>
+        <small>${date}</small>
       </div>
     `;
-    
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
-  }
-  
-};
 
+  });
 
-window.closeAttendanceView = function () {
-
-  const view = document.getElementById("attendanceView");
-  if (!view) return;
-
-  view.style.display = "none";
+  box.innerHTML = html || `
+    <div style="
+      text-align:center;
+      padding:20px;
+      color:#777;
+    ">
+      No attendance records
+    </div>
+  `;
 
 };
+
 
 
 window.closeEmployeeProfile = function () {
@@ -5286,94 +6239,99 @@ window.closeEmployeeProfile = function () {
 
 
 
-// ===============================
-// 🧾 EXPENSES
-// ===============================
 // =========================
-// ADD EXPENSE
+// OPEN ADD EXPENSE FORM
 // =========================
-
-
 window.openAddExpense = function () {
 
   const form = document.getElementById("expenseForm");
+
   if (!form) return;
 
-  const isHidden =
-    window.getComputedStyle(form).display === "none";
-
-  form.style.display = isHidden ? "block" : "none";
+  form.style.display =
+    form.style.display === "block"
+      ? "none"
+      : "block";
 };
 
-async function addExpense() {
-
-  const title = document.getElementById("eTitle");
-  const amount = document.getElementById("eAmount");
-
-  if (!title || !amount) return;
-
-  if (!title.value.trim()) {
-    alert("Enter expense name");
-    return;
-  }
-
-  if (!amount.value) {
-    alert("Enter amount");
-    return;
-  }
+// =========================
+// SAVE EXPENSE
+// =========================
+window.addExpense = async function () {
 
   try {
 
-    await addDoc(collection(db, "expenses"), {
+    if (!auth.currentUser) {
+      alert("Login First");
+      return;
+    }
 
-      name: title.value.trim(),
-      amount: Number(amount.value) || 0,
-      createdAt: new Date()
+    const uid = auth.currentUser.uid;
 
-    });
+    const title =
+      document.getElementById("eTitle").value.trim();
 
-    alert("Expense added ✔");
+    const amount =
+      Number(document.getElementById("eAmount").value);
+
+    if (!title) {
+      alert("Enter expense name");
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      alert("Enter valid amount");
+      return;
+    }
+
+    await addDoc(
+
+      collection(
+        db,
+        "users",
+        uid,
+        "expenses"
+      ),
+
+      {
+        name: title,
+        amount: amount,
+        createdAt: new Date()
+      }
+
+    );
+
+    alert("✅ Expense Saved");
+
+    document.getElementById("eTitle").value = "";
+    document.getElementById("eAmount").value = "";
+
+    closeExpenseForm();
 
     loadExpenses();
-    updateDashboard();
-    clearExpenseForm();
 
-  } catch (error) {
-    console.error(error);
-    
-  }
-}
+    if (typeof updateDashboard === "function") {
+      updateDashboard();
+    }
 
+  } catch (e) {
 
-window.closeExpenses = function () {
+    console.error(e);
+    alert(e.message);
 
-  // Hisha expenses page (full screen overlay)
-  const expensesSection = document.getElementById("expensesSection");
-  if (expensesSection) {
-    expensesSection.style.display = "none";
-  }
-
-  // Erekana dashboard
-  const dashboard = document.getElementById("dashboardTop");
-  if (dashboard) {
-    dashboard.style.display = "block";
   }
 
 };
 
-
+// =========================
+// CLOSE EXPENSE FORM
+// =========================
 window.closeExpenseForm = function () {
 
-  const form = document.getElementById("expenseForm");
-  if (form) {
-    form.style.display = "none";
-  }
+  document.getElementById("expenseForm").style.display = "none";
 
-  const title = document.getElementById("eTitle");
-  const amount = document.getElementById("eAmount");
-
-  if (title) title.value = "";
-  if (amount) amount.value = "";
+  document.getElementById("eTitle").value = "";
+  document.getElementById("eAmount").value = "";
 
 };
 
@@ -5381,55 +6339,66 @@ window.closeExpenseForm = function () {
 // LOAD EXPENSES
 // =========================
 
-async function loadExpenses() {
+window.loadExpenses = async function () {
+
+  if (!auth.currentUser) return;
+
+  const uid = auth.currentUser.uid;
 
   const box = document.getElementById("expensesList");
 
-  if (!box) {
-    console.log("expensesList not found");
-    return;
-  }
+  if (!box) return;
 
-  const snap = await getDocs(collection(db, "expenses"));
+  box.innerHTML = "Loading...";
 
-  let totalExpenses = 0;
-  let expenses = [];
+  const snap = await getDocs(
+    collection(db, "users", uid, "expenses")
+  );
 
-  if (snap.empty) {
-    box.innerHTML = `
-      <div id="totalExpensesCard"
-        style="
-          background:#ffe0e0;
-          padding:12px;
-          border-radius:10px;
-          text-align:center;
-          font-weight:bold;
-        ">
-        💸 Total Expenses: 0 BIF
-      </div>
-
-      <div style="text-align:center;padding:20px;color:#777;">
-        No expenses yet
-      </div>
-    `;
-    return;
-  }
+  let total = 0;
+  let html = "";
 
   snap.forEach(docSnap => {
 
     const e = docSnap.data();
 
-    const expense = {
-      id: docSnap.id,
-      name: e.name || "No name",
-      amount: Number(e.amount || 0),
-      date: e.createdAt?.toDate
-        ? e.createdAt.toDate().toLocaleDateString()
-        : "No date"
-    };
+    total += Number(e.amount || 0);
 
-    totalExpenses += expense.amount;
-    expenses.push(expense);
+    const date = e.createdAt?.toDate
+      ? e.createdAt.toDate().toLocaleDateString()
+      : "";
+
+    html += `
+<div
+  class="expenseCard"
+  onclick="openExpenseView('${docSnap.id}')"
+  data-name="${(e.name || "").toLowerCase()}"
+  data-amount="${e.amount}"
+  style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:white;
+    padding:12px;
+    margin-bottom:10px;
+    border-radius:10px;
+    cursor:pointer;
+  ">
+
+  <div>
+    <b>${e.name}</b><br>
+    <small>📅 ${date}</small>
+  </div>
+
+  <div style="
+    color:#f44336;
+    font-weight:bold;
+  ">
+    ${Number(e.amount).toLocaleString()} BIF
+  </div>
+
+</div>
+`;
   });
 
   box.innerHTML = `
@@ -5437,308 +6406,418 @@ async function loadExpenses() {
       id="totalExpensesCard"
       style="
         background:#ffe0e0;
-        padding:12px;
-        border-radius:10px;
-        margin-bottom:10px;
-        font-weight:bold;
-        text-align:center;
         color:#b71c1c;
+        padding:12px;
+        margin-bottom:12px;
+        border-radius:10px;
+        text-align:center;
+        font-weight:bold;
       ">
-      💸 Total Expenses: ${totalExpenses.toLocaleString()} BIF
+      💸 Total Expenses: ${total.toLocaleString()} BIF
     </div>
+
+    ${html || "<div style='text-align:center;padding:20px;'>No expenses</div>"}
   `;
-
-  expenses.forEach(e => {
-
-    box.innerHTML += `
-      <div
-        class="expenseCard"
-        data-name="${(e.name || "").toLowerCase()}"
-        data-amount="${e.amount}"
-        style="
-          background:white;
-          padding:10px;
-          border-radius:8px;
-          margin-bottom:8px;
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          gap:10px;
-        "
-      >
-
-        <div style="flex:1;">
-          <b>${e.name}</b><br>
-          <small style="color:#777;">
-            📅 ${e.date}
-          </small>
-        </div>
-
-        <div style="color:#f44336;font-weight:bold;">
-          ${e.amount.toLocaleString()} BIF
-        </div>
-
-        <div style="display:flex;gap:6px;">
-
-          <button
-            onclick="editExpense('${e.id}','${e.name}',${e.amount})"
-            style="
-              width:28px;
-              height:28px;
-              border:none;
-              border-radius:50%;
-              background:#2196F3;
-              color:white;
-              cursor:pointer;
-            ">
-            ✏️
-          </button>
-
-          <button
-            onclick="deleteExpense('${e.id}')"
-            style="
-              width:28px;
-              height:28px;
-              border:none;
-              border-radius:50%;
-              background:#f44336;
-              color:white;
-              cursor:pointer;
-            ">
-            🗑
-          </button>
-
-        </div>
-
-      </div>
-    `;
-  });
-}
-
-
-window.closeExpenses = function () {
-
-  const form = document.getElementById("expenseForm");
-  if (form) form.style.display = "none";
-
-  const expenses = document.getElementById("expensesSection");
-  if (expenses) expenses.style.display = "block";
-
-  const dashboard = document.getElementById("dashboardTop");
-  if (dashboard) dashboard.style.display = "block";
 
 };
 
-window.searchExpenses = function () {
 
-  const input = document.getElementById("expenseSearch");
-  if (!input) return;
+window.openExpenseView = async function(id){
 
-  const q = input.value.toLowerCase();
+  if(!auth.currentUser){
+    alert("Login First");
+    return;
+  }
 
-  const cards = document.querySelectorAll(".expenseCard");
+  const uid = auth.currentUser.uid;
 
-  let filteredTotal = 0;
+  const snap = await getDoc(
+    doc(db,"users",uid,"expenses",id)
+  );
 
-  cards.forEach(card => {
+  if(!snap.exists()){
+    alert("Expense not found");
+    return;
+  }
 
-    const name = (card.dataset.name || "").toLowerCase();
+  const e = snap.data();
+
+  document.getElementById("expensesSection").style.display = "none";
+  document.getElementById("expenseView").style.display = "block";
+
+  document.getElementById("expenseView").innerHTML = `
+
+  <div style="
+    max-width:400px;
+    margin:auto;
+    padding:15px;
+    font-family:Arial;
+  ">
+
+    <!-- TOP BAR -->
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:15px;
+    ">
+
+      <button
+        onclick="closeExpenseView()"
+        style="
+          width:40px;
+          height:40px;
+          border:none;
+          border-radius:50%;
+          background:#eee;
+          cursor:pointer;
+        ">
+        🔙
+      </button>
+
+      <div style="display:flex;gap:8px;">
+
+        <button
+          onclick="editExpense('${id}','${e.name}',${e.amount})"
+          style="
+            width:40px;
+            height:40px;
+            border:none;
+            border-radius:50%;
+            background:#2196F3;
+            color:white;
+            cursor:pointer;
+          ">
+          ✏️
+        </button>
+
+        <button
+          onclick="deleteExpenseFromView('${id}')"
+          style="
+            width:40px;
+            height:40px;
+            border:none;
+            border-radius:50%;
+            background:#f44336;
+            color:white;
+            cursor:pointer;
+          ">
+          🗑
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- CARD -->
+    <div style="
+      background:white;
+      border-radius:16px;
+      padding:20px;
+      box-shadow:0 3px 12px rgba(0,0,0,.08);
+      text-align:center;
+    ">
+
+      <div style="font-size:55px;">💸</div>
+
+      <h2 style="
+        margin:10px 0;
+        color:#333;
+      ">
+        ${e.name}
+      </h2>
+
+      <div style="
+        background:#f6f7fb;
+        padding:12px;
+        border-radius:10px;
+        margin-top:15px;
+      ">
+        <b>💰 Amount</b><br><br>
+        ${Number(e.amount).toLocaleString()} BIF
+      </div>
+
+      <div style="
+        background:#f6f7fb;
+        padding:12px;
+        border-radius:10px;
+        margin-top:12px;
+      ">
+        <b>📅 Date</b><br><br>
+        ${
+          e.createdAt?.toDate
+          ? e.createdAt.toDate().toLocaleString()
+          : "-"
+        }
+      </div>
+
+    </div>
+
+  </div>
+
+  `;
+};
+
+
+window.closeExpenseView = function(){
+
+  document.getElementById("expenseView").style.display = "none";
+  document.getElementById("expensesSection").style.display = "block";
+
+};
+
+
+window.deleteExpenseFromView = async function(id){
+
+  if(!confirm("Delete this expense?")) return;
+
+  try{
+
+    const uid = auth.currentUser.uid;
+
+    await deleteDoc(
+      doc(db,"users",uid,"expenses",id)
+    );
+
+    document.getElementById("expenseView").style.display = "none";
+    document.getElementById("expensesSection").style.display = "block";
+
+  loadExpenses();
+    updateDashboard();
+
+    alert("✅ Expense deleted");
+
+  }catch(err){
+    console.error(err);
+    alert(err.message);
+  }
+
+};
+
+
+// =========================
+// CLOSE EXPENSES PAGE
+// =========================
+window.closeExpenses = function () {
+
+  document.getElementById("expensesSection").style.display = "none";
+
+  document.getElementById("dashboardTop").style.display = "block";
+
+};
+
+
+window.searchExpenses = function(){
+
+  const q = document
+    .getElementById("expenseSearch")
+    .value
+    .trim()
+    .toLowerCase();
+
+  let total = 0;
+  let found = 0;
+
+  document.querySelectorAll(".expenseCard").forEach(card=>{
+
+    const name = card.dataset.name || "";
     const amount = Number(card.dataset.amount || 0);
 
-    if (name.includes(q)) {
+    if(name.includes(q)){
 
       card.style.display = "flex";
-      filteredTotal += amount;
+      total += amount;
+      found++;
 
-    } else {
+    }else{
+
       card.style.display = "none";
+
     }
 
   });
 
-  const totalCard = document.getElementById("totalExpensesCard");
+  const totalCard =
+    document.getElementById("totalExpensesCard");
 
-  if (totalCard) {
+  if(totalCard){
+
     totalCard.innerHTML =
-      `💸 Total Expenses: ${filteredTotal.toLocaleString()} BIF`;
+      `💸 Total Expenses: ${total.toLocaleString()} BIF`;
+
+  }
+
+  if(found === 0 && q !== ""){
+
+    document.getElementById("expensesList").insertAdjacentHTML(
+      "beforeend",
+      `
+      <div id="expenseNotFound"
+      style="
+        text-align:center;
+        color:#888;
+        padding:20px;
+      ">
+        🔍 No expense found
+      </div>
+      `
+    );
+
+  }else{
+
+    document.getElementById("expenseNotFound")?.remove();
+
   }
 
 };
 
-window.editExpense = async function (id, oldName, oldAmount) {
 
-  let newName = prompt("Edit name:", oldName);
+window.editExpense = async function(id, oldName, oldAmount){
 
-  if (newName === null) return;
-
-  newName = newName.trim();
-
-  if (!newName) {
-    alert("Name cannot be empty");
+  if(!auth.currentUser){
+    alert("Login First");
     return;
   }
 
-  let newAmount = prompt("Edit amount:", oldAmount);
+  const uid = auth.currentUser.uid;
 
-  if (newAmount === null) return;
+  let name = prompt("Expense Name", oldName);
 
-  newAmount = Number(newAmount);
+  if(name === null) return;
 
-  if (isNaN(newAmount) || newAmount <= 0) {
+  name = name.trim();
+
+  if(!name){
+    alert("Enter expense name");
+    return;
+  }
+
+  let amount = prompt("Amount", oldAmount);
+
+  if(amount === null) return;
+
+  amount = Number(amount);
+
+  if(isNaN(amount) || amount <= 0){
     alert("Invalid amount");
     return;
   }
 
-  await updateDoc(doc(db, "expenses", id), {
-    name: newName,
-    amount: newAmount
-  });
+  await updateDoc(
 
-  alert("Expense updated ✔");
+    doc(db,"users",uid,"expenses",id),
 
-  loadExpenses();
-  updateDashboard();
-};
-
-
-window.deleteExpense = async function (id) {
-
-  if (!id) return;
-
-  if (!confirm("Delete this expense?")) return;
-
-  try {
-
-    await deleteDoc(doc(db, "expenses", id));
-
-    loadExpenses();
-    updateDashboard();
-
-    if (typeof showToast === "function") {
-      showToast("Expense deleted ✔", "#f44336");
+    {
+      name,
+      amount
     }
 
-  } catch (err) {
-    console.error(err);
-    alert("Error deleting expense ❌");
+  );
+
+  loadExpenses();
+
+  if(typeof updateDashboard==="function"){
+    updateDashboard();
   }
+
+  alert("✅ Expense Updated");
+
+};
+
+window.deleteExpense = async function(id){
+
+  if(!auth.currentUser){
+    alert("Login First");
+    return;
+  }
+
+  const uid = auth.currentUser.uid;
+
+  if(!confirm("Delete this expense?")){
+    return;
+  }
+
+  try{
+
+    await deleteDoc(
+      doc(db,"users",uid,"expenses",id)
+    );
+
+    loadExpenses();
+
+    if(typeof updateDashboard==="function"){
+      updateDashboard();
+    }
+
+    if(typeof showToast==="function"){
+      showToast("Expense deleted ✔","#f44336");
+    }
+
+  }catch(err){
+
+    console.log(err);
+    alert(err.message);
+
+  }
+
 };
 
 
-window.login = async function(){
 
-try{
+// ===============================
+// SETTINGS
+// ===============================
 
-const email =
-document.getElementById("email").value;
+window.settings =
+function(){
 
-const password =
-document.getElementById("password").value;
-
-await signInWithEmailAndPassword(
-auth,
-email,
-password
+alert(
+"Settings"
 );
 
-document
-.getElementById("authScreen")
-.style.display="none";
+};
 
-document
-.getElementById("dashboardTop")
-.style.display="block";
 
-loadProducts();
 
-}
-catch(e){
 
-alert(e.message);
+// ===============================
+// HELP
+// ===============================
 
-}
+window.help =
+function(){
 
-}
-
-window.signup = async function(){
-
-try{
-
-await createUserWithEmailAndPassword(
-
-auth,
-
-document.getElementById("email").value,
-
-document.getElementById("password").value
-
+alert(
+"Help"
 );
 
-alert("Account Created");
+};
 
-}
-catch(e){
 
-alert(e.message);
 
-}
 
-}
-
-if ("serviceWorker" in navigator) {
-
-  navigator.serviceWorker
-    .register("./service-worker.js")
-
-    .then(() => {
-      console.log("Service Worker Registered ✔");
-    })
-
-    .catch(err => {
-      console.log(err);
-    });
-
-}
 
 
 
 // ===============================
-// 🚀 INIT APP
-// ===============================.
-async function loadAll(){
-  await Promise.all([
-    loadProducts(),
-    loadSuppliers(),
-    loadCustomers(),
-    loadEmployees(),
-    loadExpenses(),
-    updateDashboard()
-  ]);
-}
-
-loadAll();
-
-// ===============================
-// 🌍 GLOBAL EXPORTS (FIXED)
+// EXTRA APP STATE
 // ===============================
 
-window.saveProduct = saveProduct;
-window.loadProducts = loadProducts;
-window.openProductView = openProductView;
-window.showMoreProducts = showMoreProducts;
+let visibleSuppliers = 5;
+let currentSupplier = null;
+let pressTimer = null;
+let saleItems = [];
+let totalPurchases = 0;
+let totalProducts = 0;
 
-window.saveSupplier = saveSupplier;
-window.loadSuppliers = loadSuppliers;
-window.searchSuppliers = searchSuppliers;
-window.showMoreSuppliers = showMoreSuppliers;
+let currentCustomer = null;
+let customerSaleItems = [];
+let payrollData = [];
+let isFinishing = false;
 
-window.saveEmployee = saveEmployee;
-window.loadEmployees = loadEmployees;
 
-window.addExpense = addExpense;
-window.loadExpenses = loadExpenses;
+// ===============================
+// EXPORT
+// ===============================
 
-// navigation
-window.openSection = openSection;
-window.goBack = goBack;
-window.showMenu = showMenu;
+export { db, auth };
