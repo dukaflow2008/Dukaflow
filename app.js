@@ -35,6 +35,18 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
 
 // ===============================
 // FIREBASE CONFIG
@@ -59,7 +71,6 @@ appId: "1:555776552379:web:4238c2c40709e8c980289e"
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
 await setPersistence(auth, browserLocalPersistence);
 
@@ -6761,6 +6772,101 @@ window.deleteExpense = async function(id){
   }
 
 };
+
+
+window.updateNetworkStatus = function () {
+
+  const status = document.getElementById("networkStatus");
+  if (!status) return;
+
+  if (navigator.onLine) {
+
+    status.innerHTML = "🟢 Online";
+    status.style.background = "#4CAF50";
+
+  } else {
+
+    status.innerHTML = "🔴 Offline";
+    status.style.background = "#f44336";
+
+  }
+
+};
+
+
+// FIRST CHECK
+window.updateNetworkStatus();
+
+
+// INTERNET CHANGE
+window.addEventListener("online", () => {
+
+  updateNetworkStatus();
+
+  if (typeof showToast === "function") {
+    showToast(
+      "🟢 Online - Sync completed",
+      "#4CAF50"
+    );
+  }
+
+});
+
+
+window.addEventListener("offline", () => {
+
+  updateNetworkStatus();
+
+  if (typeof showToast === "function") {
+    showToast(
+      "🔴 Offline Mode",
+      "#f44336"
+    );
+  }
+
+});
+
+
+
+// SHOW SYNCING
+window.showSyncing = function(){
+
+  const status = document.getElementById("networkStatus");
+
+  if(!status) return;
+
+  status.innerHTML = "🔄 Syncing...";
+  status.style.background = "#FF9800";
+
+};
+
+
+// SHOW ONLINE
+window.showOnline = function(){
+
+  const status = document.getElementById("networkStatus");
+
+  if(!status) return;
+
+  status.innerHTML = "🟢 Online";
+  status.style.background = "#4CAF50";
+
+};
+
+
+// CHECK OFFLINE AT START
+if(!navigator.onLine){
+
+  if(typeof showToast === "function"){
+
+    showToast(
+      "📱 Saved offline. Will sync later.",
+      "#FF9800"
+    );
+
+  }
+
+}
 
 
 
