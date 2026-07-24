@@ -25,7 +25,6 @@ background:#f5f5f5;
 
 /* TOP */
 
-
 .top{
 display:flex;
 align-items:center;
@@ -256,7 +255,7 @@ color:black;
 
 <body>
 
-
+<!-- TOP -->
 
 <div class="top">
 
@@ -280,7 +279,6 @@ color:black;
   </button>
 
 </div>
-
 
 <div class="dashboardDock">
 
@@ -451,36 +449,128 @@ overflow:auto;
 
 <!-- HEADER -->
 
-<div
-style="
+<div style="
 display:flex;
 justify-content:space-between;
 align-items:center;
 margin-bottom:20px;
 ">
 
-<h2 style="margin:0;">
-📊 Dashboard
-</h2>
+  <!-- SETTINGS -->
+  <button
+  onclick="openDashboardSettings()"
+  style="
+  border:none;
+  background:#eee;
+  padding:10px 14px;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+  ">
+  ⚙️
+  </button>
 
-<button
-onclick="closeDashboard()"
+  <!-- TITLE -->
+  <h2 style="margin:0;">
+    📊 Dashboard
+  </h2>
 
-style="
-border:none;
-background:#eee;
-padding:10px 14px;
-border-radius:10px;
-font-size:16px;
-">
-
-✕
-
-</button>
+  <!-- CLOSE -->
+  <button
+  onclick="closeDashboard()"
+  style="
+  border:none;
+  background:#eee;
+  padding:10px 14px;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+  ">
+  ✕
+  </button>
 
 </div>
 
 
+<div id="dashboardSettings" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
+padding:15px;
+box-sizing:border-box;
+font-family:Arial;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+">
+
+<button onclick="closeDashboardSettings()" style="
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:#eee;
+">
+🔙
+</button>
+
+<h2 style="margin:0;"> Dashboard Settings</h2>
+
+<div style="width:38px;"></div>
+
+</div>
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:10px;
+">
+
+<b>📅 Report Period</b>
+
+<select id="dashboardPeriod"
+onchange="updateDashboard()"
+style="
+width:100%;
+margin-top:10px;
+padding:10px;
+border:1px solid #ddd;
+border-radius:8px;
+">
+
+<option value="today">Today</option>
+<option value="week">This Week</option>
+<option value="month" selected>This Month</option>
+<option value="year">This Year</option>
+<option value="all">All Time</option>
+
+</select>
+
+</div>
+
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+"
+onclick="openDashboardCardsSettings()">
+
+📈 Show / Hide Cards
+
+</div>
+</div>
 
 <div
 class="dashTable"
@@ -511,12 +601,55 @@ Sales
 class="value"
 id="dashSales">
 
-21
+0
 
 </span>
 
 </div>
 
+
+<div id="cardSettings" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+padding:15px;
+box-sizing:border-box;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+">
+
+<button onclick="closeCardSettings()" style="
+border:none;
+border-radius:50%;
+width:38px;
+height:38px;
+">
+🔙
+</button>
+
+<h3 style="margin:0;">
+📈 Dashboard Cards
+</h3>
+
+<div></div>
+
+</div>
+
+
+<div id="cardOptions"></div>
+
+
+</div>
 
 
 <div
@@ -538,7 +671,7 @@ Expenses
 class="value"
 id="dashExpenses">
 
-6
+0
 
 </span>
 
@@ -565,7 +698,7 @@ Emp Payroll
 class="value"
 id="dashEmpPayroll">
 
-5
+0
 
 </span>
 
@@ -592,7 +725,7 @@ Supplier Payroll
 class="value"
 id="dashSupplierPayroll">
 
-5
+0
 
 </span>
 
@@ -621,7 +754,7 @@ font-size:18px;
 class="value"
 id="dashProfit">
 
-5
+0
 
 </span>
 
@@ -629,7 +762,6 @@ id="dashProfit">
 
 
 </div>
-
 
 
 <!-- DASHBOARD BOTTOM NAV -->
@@ -814,23 +946,41 @@ padding:20px;
 box-sizing:border-box;
 ">
 
-<!-- CLOSE BUTTON -->
-<button onclick="closeProducts()" style="
-position:fixed;
-top:12px;
-left:12px;
-background:#fff;
-border:none;
-width:38px;
-height:38px;
-border-radius:50%;
-font-size:18px;
-box-shadow:0 2px 8px rgba(0,0,0,0.15);
-z-index:2100;
+<!-- TOP BAR -->
+<div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:20px;
 ">
-✕
-</button>
 
+  <!-- CLOSE -->
+  <button onclick="closeProducts()" style="
+  width:38px;
+  height:38px;
+  border:none;
+  border-radius:50%;
+  background:white;
+  font-size:18px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  ">
+  ✕
+  </button>
+
+<button
+onclick="openLowStockProducts()"
+style="
+border:none;
+background:#FFF3E0;
+color:#F57C00;
+padding:8px 14px;
+border-radius:20px;
+font-size:13px;
+font-weight:bold;
+">
+Low Stock (<span id="lowStockCount">0</span>)
+</button>
+</div>
 
 <!-- CONTENT -->
 <div style="margin-top:60px;">
@@ -924,6 +1074,56 @@ font-size:14px;
 <div id="productList" style="margin-top:20px;"></div>
 
 </div>
+
+</div>
+
+
+<!-- LOW STOCK PAGE -->
+<div id="lowStockView" style="
+display:none;
+position:fixed;
+inset:0;
+background:#f6f7fb;
+z-index:99999;
+overflow:auto;
+padding:20px;
+box-sizing:border-box;
+">
+
+
+<!-- TOP BAR -->
+<div style="
+display:flex;
+align-items:center;
+gap:15px;
+margin-bottom:20px;
+">
+
+
+<button onclick="closeLowStockView()"
+style="
+width:40px;
+height:40px;
+border:none;
+border-radius:50%;
+background:white;
+font-size:18px;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+">
+🔙
+</button>
+
+
+<h2 style="margin:0;">
+⚠ Low Stock Products
+</h2>
+
+
+</div>
+
+
+<div id="lowStockProductsList"></div>
+
 
 </div>
 
@@ -1429,7 +1629,7 @@ align-items:center;
 ">
 
 <h3 style="margin:0;">
-⚙️ Payroll Settings
+ Payroll Settings
 </h3>
 
 <button
@@ -1477,53 +1677,71 @@ border-radius:10px;
 
 <div style="margin-top:14px;">
 
-<div style="
-font-weight:bold;
-margin-bottom:8px;
-">
-📅 Date Filter
+  <div style="
+    font-weight:bold;
+    margin-bottom:8px;
+  ">
+    📅 Date Filter
+  </div>
+
+  <select
+    id="payrollDate"
+    onchange="changePayrollFilter()"
+    style="
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+    ">
+
+    <option value="today">Today</option>
+    <option value="week">This Week</option>
+    <option value="month">This Month</option>
+    <option value="year">This Year</option>
+    <option value="all" selected>All</option>
+    <option value="custom">choose period</option>
+
+  </select>
+
 </div>
 
-<select
-id="payrollDate"
-onchange="openSupplierPayroll()"
-style="
-width:100%;
-padding:10px;
-border-radius:10px;
+<div id="payrollCustomFilter" style="
+display:none;
+margin-top:12px;
 ">
-  
-<option value="all">All</option>
-<option value="today">Today</option>
-<option value="month">This Month</option>
 
-</select>
+  <input
+    type="date"
+    id="payrollStartDate"
+    style="
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+    ">
 
-</div>
+  <input
+    type="date"
+    id="payrollEndDate"
+    style="
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+    ">
 
-<!-- EXPORT -->
-
-<div style="margin-top:14px;">
-
-<div style="
-font-weight:bold;
-margin-bottom:8px;
-">
-📄 Export
-</div>
-
-<button
-onclick="exportPayroll()"
-style="
-width:100%;
-padding:10px;
-border:none;
-background:#4CAF50;
-color:white;
-border-radius:10px;
-">
-⬇ Export Report
-</button>
+  <button
+    onclick="openSupplierPayroll()"
+    style="
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    background:#4CAF50;
+    color:white;
+    font-weight:bold;
+    ">
+    ✅ Apply Filter
+  </button>
 
 </div>
 
@@ -1739,41 +1957,65 @@ padding:20px;
 box-sizing:border-box;
 ">
 
-<!-- BACK -->
+<div style="
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-top:45px;
+margin-bottom:15px;
+">
+
 <button onclick="closeCustomers()" style="
-position:fixed;
-top:12px;
-left:12px;
-width:40px;
-height:40px;
+width:38px;
+height:38px;
 border:none;
 border-radius:50%;
 background:white;
 box-shadow:0 2px 8px rgba(0,0,0,.15);
-z-index:4000;
+font-size:18px;
 ">
 🔙
 </button>
 
+
 <h2 style="
-margin-top:60px;
-margin-bottom:15px;
+margin:0;
+font-size:20px;
 ">
 👤 Customers
 </h2>
+
+
+<button
+onclick="openCustomerDebt()"
+style="
+border:none;
+background:#ffebee;
+color:#f44336;
+padding:8px 12px;
+border-radius:20px;
+font-weight:bold;
+font-size:13px;
+">
+🧾 Debt
+</button>
+
+</div>
 
 <!-- ADD -->
 <button
 onclick="openAddCustomer()"
 style="
-width:100%;
-padding:12px;
+padding:8px 18px;
 border:none;
-border-radius:10px;
+border-radius:20px;
 background:linear-gradient(135deg,#4CAF50,#2E7D32);
 color:white;
 font-weight:bold;
+font-size:13px;
 margin-bottom:12px;
+display:block;
+margin-left:auto;
 ">
 ➕ Add Customer
 </button>
@@ -1832,6 +2074,64 @@ font-size:14px;
 <div id="customerList"></div>
 
 </div>
+
+
+<div id="customerDebtSection" style="
+display:none;
+position:fixed;
+inset:0;
+background:#f6f7fb;
+z-index:5000;
+overflow:auto;
+padding:20px;
+box-sizing:border-box;
+">
+
+  <!-- TOP BAR -->
+  <div style="
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+  ">
+
+    <button
+    onclick="closeCustomerDebt()"
+    style="
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:50%;
+    background:white;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+    font-size:18px;
+    cursor:pointer;
+    ">
+    🔙
+    </button>
+
+    <h2 style="
+    margin:0;
+    font-size:20px;
+    font-weight:bold;
+    ">
+    Customer Debts
+    </h2>
+
+  </div>
+
+  <!-- SEARCH -->
+  <input
+id="customerDebtSearch"
+type="text"
+placeholder="🔍 Search customer..."
+oninput="loadCustomerDebts()">
+
+  <!-- LIST -->
+  <div id="customerDebtList"></div>
+
+</div>
+
 
  <div id="addCustomerPopup" style="  
   display:none;  
@@ -2494,42 +2794,68 @@ background:white;
   box-sizing:border-box;
 ">
 
-  <!-- TOP BAR -->
-  <div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  ">
+<!-- TOP BAR -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+">
 
-    <button onclick="closeExpenses()" style="
-      width:36px;
-      height:36px;
-      border:none;
-      border-radius:50%;
-      background:white;
-      box-shadow:0 2px 8px rgba(0,0,0,0.1);
-      cursor:pointer;
-    ">
-      🔙
-    </button>
+<!-- BACK -->
+<button onclick="closeExpenses()" style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+">
+🔙
+</button>
 
-    <h3 style="margin:0;">💸 Expenses</h3>
 
-    <button onclick="openAddExpense()" style="
-      width:36px;
-      height:36px;
-      border:none;
-      border-radius:50%;
-      background:#4CAF50;
-      color:white;
-      cursor:pointer;
-      font-size:18px;
-    ">
-      ➕
-    </button>
+<h3 style="margin:0;">
+💸 Expenses
+</h3>
 
-  </div>
+<!-- SETTINGS -->
+<button onclick="openExpenseSettings()" style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:#E3F2FD;
+color:#2196F3;
+font-size:18px;
+">
+⚙️
+</button>
+
+</div>
+
+
+<!-- ADD BUTTON BELOW -->
+<div style="
+display:flex;
+justify-content:center;
+margin-bottom:15px;
+">
+
+<button onclick="openAddExpense()" style="
+border:none;
+background:#E8F5E9;
+color:#4CAF50;
+padding:8px 20px;
+border-radius:20px;
+font-weight:bold;
+font-size:14px;
+">
+➕ Add Expense
+</button>
+
+</div>
+
 
 <!-- ADD EXPENSE FORM -->
 <div id="expenseForm" style="
@@ -2636,18 +2962,13 @@ background:white;
 </div>
 
 
- <input
-  id="expenseSearch"
-  placeholder="🔍 Search expense..."
-  oninput="searchExpenses()"
-  style="
-    width:100%;
-    padding:10px;
-    margin-bottom:10px;
-    border:1px solid #ddd;
-    border-radius:8px;
-  "
+<input
+id="expenseSearch"
+placeholder="🔍 Search expense..."
+oninput="loadExpenses()"
 >
+
+
   <!-- LIST -->
   <div id="expensesList"></div>
 
@@ -2665,9 +2986,745 @@ z-index:9999;
 overflow:auto;
 "></div>
 
+
+<div id="expenseSettings" style="
+display:none;
+position:fixed;
+inset:0;
+background:#f6f7fb;
+z-index:10000;
+padding:15px;
+overflow:auto;
+font-family:Arial;
+">
+
+<!-- HEADER -->
+<div style="
+display:flex;
+align-items:center;
+gap:15px;
+margin-bottom:20px;
+">
+
+<button onclick="closeExpenseSettings()" style="
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+">
+🔙
+</button>
+
+<h3 style="margin:0;">
+ Expenses Settings
+</h3>
+
+</div>
+
+
+<!-- REPORTS -->
+<div onclick="openExpenseReports()" style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<span>
+📊 Reports
+</span>
+
+<span>
+›
+</span>
+
+</div>
+
+
+
+<!-- FILTERS -->
+<div onclick="openExpenseFilters()" style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<span>
+📅 Filters
+</span>
+
+<span>
+›
+</span>
+
+</div>
+
+
+
+
+<!-- BUDGET -->
+<div onclick="openExpenseBudget()" style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<span>
+💰 Budget
+</span>
+
+<span>
+›
+</span>
+
+</div>
+
+
+
+
+<!-- HISTORY -->
+<div onclick="openExpenseHistory()" style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<span>
+🕒 History
+</span>
+
+<span>
+›
+</span>
+
+</div>
+
+
+
+
+<!-- ADVANCED -->
+<div onclick="openExpenseAdvanced()" style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<span>
+⚙️ Advanced
+</span>
+
+<span>
+›
+</span>
+
+</div>
+
+
+</div>
+
+
+<!-- ========================= -->
+<!-- EXPENSE FILTERS -->
+<!-- ========================= -->
+
+<div id="expenseFiltersSection" style="
+display:none;
+position:fixed;
+inset:0;
+background:#f6f7fb;
+z-index:12000;
+overflow:auto;
+padding:15px;
+box-sizing:border-box;
+font-family:Arial;
+">
+
+<!-- HEADER -->
+<div style="
+display:flex;
+align-items:center;
+gap:15px;
+margin-bottom:20px;
+">
+
+<button onclick="closeExpenseFilters()" style="
+width:38px;
+height:38px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.15);
+">
+🔙
+</button>
+
+<h3 style="margin:0;">
+📅 Expense Filters
+</h3>
+
+</div>
+
+
+<!-- DATE FILTER -->
+
+<div style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:12px;
+">
+
+<b>Date Filter</b>
+
+<select id="expenseFilterType"
+onchange="toggleExpenseFilterCustom()"
+style="
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+">
+
+<option value="today">Today</option>
+<option value="week">This Week</option>
+<option value="month">This Month</option>
+<option value="year">This Year</option>
+<option value="all" selected>All</option>
+<option value="custom">choose period</option>
+
+</select>
+
+</div>
+
+
+<!-- CUSTOM DATE -->
+
+<div id="expenseFilterCustom" style="
+display:none;
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:12px;
+">
+
+<b>Custom Date</b>
+
+<input
+type="date"
+id="expenseFilterStart"
+style="
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+">
+
+<input
+type="date"
+id="expenseFilterEnd"
+style="
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+">
+
+</div>
+
+
+<!-- SORT -->
+
+<div style="
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:12px;
+">
+
+<b>Sort</b>
+
+<select
+id="expenseFilterSort"
+style="
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+">
+
+<option value="newest">Newest First</option>
+<option value="oldest">Oldest First</option>
+<option value="highest">Highest Amount</option>
+<option value="lowest">Lowest Amount</option>
+
+</select>
+
+</div>
+
+
+
+<div style="
+display:flex;
+gap:10px;
+margin-top:10px;
+">
+
+<button
+onclick="applyExpenseFilters()"
+style="
+flex:1;
+padding:13px;
+border:none;
+border-radius:12px;
+background:#4CAF50;
+color:white;
+font-size:15px;
+cursor:pointer;
+">
+
+✅ Apply
+
+</button>
+
+<button
+onclick="resetExpenseFilters()"
+style="
+flex:1;
+padding:13px;
+border:none;
+border-radius:12px;
+background:#f44336;
+color:white;
+font-size:15px;
+cursor:pointer;
+">
+
+♻ Reset
+
+</button>
+
+</div>
+
+</div>
+
+<!-- ========================= -->
+<!-- EXPENSE REPORT -->
+<!-- ========================= -->
+
+<div id="expenseReportSection" style="
+display:none;
+position:fixed;
+inset:0;
+background:#f6f7fb;
+z-index:12000;
+overflow:auto;
+padding:10px;
+font-family:Arial;
+box-sizing:border-box;
+">
+
+<!-- HEADER -->
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+">
+
+<button onclick="closeExpenseReports()" style="
+width:34px;
+height:34px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 6px rgba(0,0,0,.12);
+">
+🔙
+</button>
+
+<b style="font-size:15px;">
+📊 Expense Reports
+</b>
+
+<button onclick="printExpenseReport()" style="
+width:34px;
+height:34px;
+border:none;
+border-radius:50%;
+background:#2196F3;
+color:white;
+">
+🖨️
+</button>
+
+</div>
+
+
+<!-- FILTER -->
+
+<div style="
+background:white;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
+">
+
+<div style="
+font-size:12px;
+font-weight:bold;
+margin-bottom:6px;
+">
+📅 Filter
+</div>
+
+<select
+id="expenseReportFilter"
+onchange="loadExpenseReport()"
+
+style="
+width:100%;
+padding:8px;
+border-radius:8px;
+font-size:12px;
+">
+
+<option value="today">Today</option>
+<option value="week">This Week</option>
+<option value="month">This Month</option>
+<option value="year">This Year</option>
+<option value="all">All</option>
+<option value="custom">
+📆 Choose Period
+</option>
+
+</select>
+
+</div>
+
+
+
+<!-- SUMMARY -->
+
+<div style="
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+">
+
+<div style="
+background:white;
+padding:8px;
+border-radius:10px;
+text-align:center;
+">
+<div style="font-size:11px;">💸 Total</div>
+<div id="reportTotalExpense"
+style="font-size:14px;font-weight:bold;">
+0 BIF
+</div>
+</div>
+
+
+<div style="
+background:white;
+padding:8px;
+border-radius:10px;
+text-align:center;
+">
+<div style="font-size:11px;">🧾 Records</div>
+<div id="reportCount"
+style="font-size:14px;font-weight:bold;">
+0
+</div>
+</div>
+
+
+<div style="
+background:white;
+padding:8px;
+border-radius:10px;
+text-align:center;
+">
+<div style="font-size:11px;">📈 Avg</div>
+<div id="reportAverage"
+style="font-size:14px;font-weight:bold;">
+0 BIF
+</div>
+</div>
+
+
+<div style="
+background:white;
+padding:8px;
+border-radius:10px;
+text-align:center;
+">
+<div style="font-size:11px;">🔥 Max</div>
+<div id="reportHighest"
+style="font-size:14px;font-weight:bold;">
+0 BIF
+</div>
+</div>
+
+</div>
+
+
+
+<!-- CATEGORY -->
+
+<div style="
+background:white;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+">
+
+<div style="
+font-size:13px;
+font-weight:bold;
+margin-bottom:8px;
+">
+📂 Categories
+</div>
+
+<div id="expenseCategoryList">
+No Data
+</div>
+
+</div>
+
+
+
+<!-- MONTHLY -->
+
+<div style="
+background:white;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+">
+
+<div style="
+font-size:13px;
+font-weight:bold;
+margin-bottom:8px;
+">
+📅 Monthly
+</div>
+
+<div id="expenseMonthlySummary">
+No Data
+</div>
+
+</div>
+
+
+
+<!-- RECENT -->
+
+<div style="
+background:white;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:8px;
+">
+
+<div style="
+font-size:13px;
+font-weight:bold;
+">
+🧾 Recent
+</div>
+
+<input
+id="expenseReportSearch"
+placeholder="Search"
+oninput="loadExpenseReport()"
+style="
+width:90px;
+padding:6px;
+border-radius:8px;
+font-size:11px;
+">
+
+</div>
+
+<div id="expenseReportList">
+
+</div>
+
+</div>
+
+
+
+<!-- BUDGET -->
+
+<div style="
+background:white;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+">
+
+<div style="
+font-size:13px;
+font-weight:bold;
+margin-bottom:8px;
+">
+💰 Budget
+</div>
+
+<div id="expenseBudgetInfo"
+style="
+font-size:12px;
+margin-bottom:6px;
+">
+No Budget
+</div>
+
+<div style="
+height:8px;
+background:#ddd;
+border-radius:20px;
+overflow:hidden;
+">
+
+<div id="expenseBudgetBar"
+style="
+width:0%;
+height:100%;
+background:#4CAF50;
+">
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- BUTTONS -->
+
+<div style="
+display:flex;
+gap:8px;
+margin-top:12px;
+">
+
+<button
+onclick="printExpenseReport()"
+style="
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+background:#2196F3;
+color:white;
+font-size:12px;
+">
+🖨 Print
+</button>
+
+<button
+onclick="exportExpenseReport()"
+style="
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+background:#4CAF50;
+color:white;
+font-size:12px;
+">
+📥 Export
+</button>
+
+</div>
+
+</div>
+
+<div
+id="expenseCustomDate"
+style="
+display:none;
+margin-top:10px;
+">
+
+<input
+type="date"
+id="expenseStartDate"
+style="
+width:100%;
+padding:8px;
+margin-bottom:8px;
+border-radius:8px;
+">
+
+<input
+type="date"
+id="expenseEndDate"
+style="
+width:100%;
+padding:8px;
+border-radius:8px;
+">
+
+<button
+onclick="loadExpenseReport()"
+style="
+width:100%;
+margin-top:8px;
+padding:10px;
+border:none;
+border-radius:8px;
+background:#4CAF50;
+color:white;
+">
+Apply
+</button>
+
+</div>
+
+
 <script type="module" src="app.js"></script>
-
-
 
 <script>
 if ("serviceWorker" in navigator) {
@@ -2679,7 +3736,6 @@ if ("serviceWorker" in navigator) {
   });
 }
 </script>
-
 
 </body>
 
