@@ -2,6 +2,8 @@
 // 🔥 DUKAFLOW FIRESTORE VERSION
 // ===============================
 
+
+
 // ===============================
 // FIREBASE IMPORTS
 // ===============================
@@ -539,6 +541,8 @@ loadCustomers();
 loadSuppliers();
 loadExpenses();
 updateDashboard();
+checkLowStockAlert();
+
 
 } else {
 
@@ -688,6 +692,195 @@ document.getElementById(
 };
 
 
+
+window.openDashboardSettings = function () {
+  document.getElementById("dashboardSettings").style.display = "block";
+};
+
+window.closeDashboardSettings = function () {
+  document.getElementById("dashboardSettings").style.display = "none";
+};
+
+
+window.setDashboardFilter = function () {
+
+  const box = document.getElementById("dashboardPeriod");
+
+  if(box){
+    box.focus();
+  }
+
+};
+
+
+
+// ===========================
+// REPORT PERIOD
+// ===========================
+function inPeriod(date, period) {
+
+  if (!date) return false;
+
+  const d = date.toDate ? date.toDate() : new Date(date);
+  const now = new Date();
+
+  switch (period) {
+
+    case "today":
+      return d.toDateString() === now.toDateString();
+
+    case "week":
+      const weekAgo = new Date();
+      weekAgo.setDate(now.getDate() - 7);
+      return d >= weekAgo;
+
+    case "month":
+      return d.getMonth() === now.getMonth() &&
+             d.getFullYear() === now.getFullYear();
+
+    case "year":
+      return d.getFullYear() === now.getFullYear();
+
+    case "all":
+      return true;
+
+    default:
+      return true;
+
+  }
+
+}
+
+
+window.openDashboardCardsSettings = function(){
+
+document.getElementById("cardSettings").style.display="block";
+
+
+const cards = [
+
+{
+id:"dashSales",
+name:"💰 Sales"
+},
+
+{
+id:"dashExpenses",
+name:"💸 Expenses"
+},
+
+{
+id:"dashEmpPayroll",
+name:"👨‍💼 Employee Payroll"
+},
+
+{
+id:"dashSupplierPayroll",
+name:"🚚 Supplier Payroll"
+},
+
+{
+id:"dashProfit",
+name:"📈 Profit"
+}
+
+];
+
+
+let html="";
+
+
+cards.forEach(card=>{
+
+
+const hidden =
+localStorage.getItem(card.id)==="hide";
+
+
+html += `
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<span>
+${card.name}
+</span>
+
+
+<button
+onclick="toggleDashboardCard('${card.id}')"
+style="
+border:none;
+padding:8px 12px;
+border-radius:8px;
+background:${hidden ? '#f44336':'#4CAF50'};
+color:white;
+">
+
+${hidden ? "Show":"Hide"}
+
+</button>
+
+
+</div>
+
+`;
+
+});
+
+
+document.getElementById("cardOptions").innerHTML=html;
+
+
+};
+
+
+
+window.toggleDashboardCard=function(id){
+
+
+const card =
+document.getElementById(id).parentElement;
+
+
+if(localStorage.getItem(id)==="hide"){
+
+
+localStorage.removeItem(id);
+
+card.style.display="flex";
+
+
+}else{
+
+
+localStorage.setItem(id,"hide");
+
+card.style.display="none";
+
+}
+
+
+openDashboardCardsSettings();
+
+};
+
+
+
+window.closeCardSettings=function(){
+
+document.getElementById("cardSettings").style.display="none";
+
+};
+
+
 window.updateDashboard = async function () {
 
   try {
@@ -696,22 +889,33 @@ window.updateDashboard = async function () {
 
     const uid = auth.currentUser.uid;
 
+    const period =
+      document.getElementById("dashboardPeriod")?.value || "all";
+
     let sales = 0;
     let expenses = 0;
     let empPayroll = 0;
     let supplierPayroll = 0;
 
+
+
     // ======================
     // SALES
     // ======================
     const salesSnap = await getDocs(
-  collection(db, "users", uid, "customerHistory")
-);
+      collection(db, "users", uid, "customerHistory")
+    );
 
-salesSnap.forEach(docSnap => {
-  const s = docSnap.data();
-  sales += Number(s.total || 0);
-});
+    salesSnap.forEach(docSnap => {
+
+      const s = docSnap.data();
+
+      if (!inPeriod(s.createdAt, period)) return;
+
+      sales += Number(s.total || 0);
+
+    });
+
     // ======================
     // EXPENSES
     // ======================
@@ -720,8 +924,13 @@ salesSnap.forEach(docSnap => {
     );
 
     expenseSnap.forEach(docSnap => {
+
       const e = docSnap.data();
+
+      if (!inPeriod(e.createdAt, period)) return;
+
       expenses += Number(e.amount || 0);
+
     });
 
     // ======================
@@ -760,8 +969,13 @@ salesSnap.forEach(docSnap => {
     );
 
     supplierSnap.forEach(docSnap => {
+
       const s = docSnap.data();
+
+      if (!inPeriod(s.createdAt, period)) return;
+
       supplierPayroll += Number(s.total || 0);
+
     });
 
     // ======================
@@ -791,6 +1005,32 @@ salesSnap.forEach(docSnap => {
     document.getElementById("dashProfit").textContent =
       profit.toLocaleString() + " BIF";
 
+// ======================
+// SHOW / HIDE CARDS
+// ======================
+
+[
+"dashSales",
+"dashExpenses",
+"dashEmpPayroll",
+"dashSupplierPayroll",
+"dashProfit"
+
+].forEach(id=>{
+
+const el = document.getElementById(id);
+
+if(el){
+
+el.parentElement.style.display =
+localStorage.getItem(id)==="hide"
+? "none"
+: "flex";
+
+}
+
+});
+
   } catch (err) {
 
     console.error("Dashboard Error:", err);
@@ -798,6 +1038,7 @@ salesSnap.forEach(docSnap => {
   }
 
 };
+
 
 
 window.openSection=function(id){
@@ -1001,8 +1242,7 @@ if(!auth.currentUser) return;
 
 const uid = auth.currentUser.uid;
 
-const productList =
-document.getElementById("productList");
+const productList = document.getElementById("productList");
 
 if(!productList){
 return;
@@ -1010,33 +1250,82 @@ return;
 
 productList.innerHTML = "Loading...";
 
+
 const snap = await getDocs(
 collection(db,"users",uid,"products")
 );
 
+
 let products = [];
 
+
 snap.forEach(docSnap=>{
+
 products.push({
+
 id: docSnap.id,
 ...docSnap.data()
-});
+
 });
 
-products.sort((a, b) => a.name.localeCompare(b.name));
+});
 
+
+// SORT
+products.sort((a,b)=>
+a.name.localeCompare(b.name)
+);
+
+
+// TOTAL PRODUCTS
 const total = document.getElementById("productTotal");
 
-if (total) {
-  total.innerHTML = `📦 Total Products: ${products.length}`;
+if(total){
+
+total.innerHTML =
+`📦 Total Products: ${products.length}`;
+
 }
 
-let html = "";
+
+// LOW STOCK COUNT
+let lowStock = 0;
+
 
 products.forEach(p=>{
 
+if(Number(p.qty || 0) <= 10){
+
+lowStock++;
+
+}
+
+});
+
+
+const lowStockBox =
+document.getElementById("lowStockCount");
+
+
+if(lowStockBox){
+
+lowStockBox.textContent = lowStock;
+
+}
+
+
+// PRODUCT LIST
+
+let html = "";
+
+
+products.forEach(p=>{
+
+
 html += `
+
 <div class="productItem"
+
 data-id="${p.id}"
 data-name="${p.name}"
 data-category="${p.category || ""}"
@@ -1055,9 +1344,11 @@ background:#f5f5f5;
 cursor:pointer;
 ">
 
+
 <div style="font-weight:bold;">
 ${p.name}
 </div>
+
 
 <div style="
 background:#0d6efd;
@@ -1066,39 +1357,187 @@ padding:4px 10px;
 border-radius:20px;
 font-size:13px;
 ">
+
 ${p.qty || 0}
-</div>
 
 </div>
+
+
+</div>
+
 `;
 
 });
 
+
 productList.innerHTML =
 html || "<p>No products</p>";
 
-// CLICK EVENT (VIEW)
-document.querySelectorAll(".productItem").forEach(item=>{
-item.onclick = function(){
+
+
+// VIEW CLICK
+
+document.querySelectorAll(".productItem")
+.forEach(item=>{
+
+
+item.onclick=function(){
+
 
 openProductView(
+
 this.dataset.id,
 this.dataset.name,
 this.dataset.category,
 this.dataset.buy,
 this.dataset.sell,
 this.dataset.qty
+
 );
 
+
 };
+
+
 });
+
 
 }catch(e){
 
-console.log("LOAD ERROR:", e);
+console.log("LOAD ERROR:",e);
+
 alert(e.message);
 
 }
+
+};
+
+
+window.checkLowStockAlert = async function(){
+
+if(!auth.currentUser){
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+
+const snap = await getDocs(
+collection(db,"users",uid,"products")
+);
+
+
+let lowProducts = [];
+
+
+snap.forEach(docSnap=>{
+
+const p = docSnap.data();
+
+if(Number(p.qty || 0) <= 10){
+
+lowProducts.push(
+`${p.name} (${p.qty || 0})`
+);
+
+}
+
+});
+
+
+if(lowProducts.length > 0){
+
+alert(
+`⚠ Low Stock Alert\n\n${lowProducts.join("\n")}`
+);
+
+}
+
+};
+
+
+window.openLowStockProducts = async function(){
+
+document.getElementById("lowStockView").style.display="block";
+
+
+const list = document.getElementById("lowStockProductsList");
+
+list.innerHTML="Loading...";
+
+
+const uid = auth.currentUser.uid;
+
+
+const snap = await getDocs(
+collection(db,"users",uid,"products")
+);
+
+
+let html="";
+
+
+snap.forEach(d=>{
+
+const p=d.data();
+
+
+if(Number(p.qty || 0) <= 10){
+
+
+html += `
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+">
+
+<b>
+📦 ${p.name}
+</b>
+
+
+<span style="
+color:#f44336;
+font-weight:bold;
+">
+${p.qty || 0}
+</span>
+
+
+</div>
+
+`;
+
+}
+
+});
+
+
+list.innerHTML = html || `
+
+<div style="
+text-align:center;
+padding:20px;
+color:#777;
+">
+No Low Stock Products
+</div>
+
+`;
+
+};
+
+
+
+window.closeLowStockView = function(){
+
+document.getElementById("lowStockView").style.display="none";
 
 };
 
@@ -2318,6 +2757,7 @@ alert(
 
 };
 
+
 window.openSaleBuilder = async function () {
 
   if (!auth.currentUser) return;
@@ -2545,36 +2985,63 @@ window.deleteSupplierSaleItem = function(index) {
 };
 
 
+
+window.supplierSaleSaving = false;
 window.finishSupplierSale = async function () {
 
-  if (!auth.currentUser) {
-    alert("Login First");
+  if (window.supplierSaleSaving) {
+    alert("Saving already in progress...");
     return;
   }
 
-  if (!currentSupplier) {
-    alert("Select supplier first");
-    return;
-  }
+  window.supplierSaleSaving = true;
 
-  if (supplierSaleItems.length === 0) {
-    alert("No products added");
-    return;
-  }
 
   try {
+
+    if (!auth.currentUser) {
+      window.supplierSaleSaving = false;
+      alert("Login First");
+      return;
+    }
+
+    if (!currentSupplier) {
+      window.supplierSaleSaving = false;
+      alert("Select supplier first");
+      return;
+    }
+
+    if (supplierSaleItems.length === 0) {
+      window.supplierSaleSaving = false;
+      alert("No products added");
+      return;
+    }
+
 
     const uid = auth.currentUser.uid;
 
     let total = 0;
 
+
     supplierSaleItems.forEach(item => {
-      total += Number(item.buy || 0) * Number(item.qty || 0);
+
+      total +=
+      Number(item.buy || 0) *
+      Number(item.qty || 0);
+
     });
 
-    // SAVE PURCHASE HISTORY
+
+    // SAVE ONCE
     await addDoc(
-      collection(db, "users", uid, "supplierHistory"),
+
+      collection(
+        db,
+        "users",
+        uid,
+        "supplierHistory"
+      ),
+
       {
         supplierId: currentSupplier.id,
         supplierName: currentSupplier.name,
@@ -2582,10 +3049,15 @@ window.finishSupplierSale = async function () {
         total: total,
         createdAt: new Date()
       }
+
     );
 
+
+
     // UPDATE STOCK
+
     for (const item of supplierSaleItems) {
+
 
       const ref = doc(
         db,
@@ -2595,38 +3067,69 @@ window.finishSupplierSale = async function () {
         item.id
       );
 
+
       const snap = await getDoc(ref);
 
-      if (snap.exists()) {
+
+      if(snap.exists()){
 
         const data = snap.data();
 
-        await updateDoc(ref, {
-          qty: Number(data.qty || 0) + Number(item.qty || 0)
+
+        await updateDoc(ref,{
+
+          qty:
+          Number(data.qty || 0)
+          +
+          Number(item.qty || 0)
+
         });
 
       }
 
     }
 
+
+
     supplierSaleItems = [];
 
-    document.getElementById("supplierSaleItemsList").innerHTML = "";
-    document.getElementById("supplierSaleBuilder").style.display = "none";
+
+    document.getElementById(
+      "supplierSaleItemsList"
+    ).innerHTML="";
+
+
+    document.getElementById(
+      "supplierSaleBuilder"
+    ).style.display="none";
+
+
 
     await loadProducts();
+
     await updateDashboard();
+
+
 
     alert("✅ Purchase Saved Successfully");
 
-  } catch (err) {
+
+  } catch(err){
 
     console.error(err);
     alert(err.message);
 
+
+  } finally {
+
+
+    window.supplierSaleSaving = false;
+
+
   }
 
 };
+
 
 window.openSupplierHistory =
 async function(){
@@ -3305,98 +3808,192 @@ document.getElementById(
 };
 
 
+
 // =========================
 // PAYROLL
 // =========================
 
 window.openSupplierPayroll = async function () {
 
-try {
+  try {
 
-if (!auth.currentUser) {
-alert("Login First");
-return;
-}
-
-const uid = auth.currentUser.uid;
-
-document.getElementById("supplierPayrollSection").style.display = "block";
-
-const list = document.getElementById("supplierPayrollList");
-const totalBox = document.getElementById("supplierPayrollTotal");
-
-list.innerHTML = `<div style="padding:20px;text-align:center;">Loading...</div>`;
-
-// LOAD VALUE (IMPORTANT)
-const sort = document.getElementById("payrollSort")?.value || "high";
-
-const search = document.getElementById("supplierPayrollSearch")?.value.toLowerCase().trim() || "";
-
-// GET DATA
-const suppliersSnap = await getDocs(collection(db, "users", uid, "suppliers"));
-const historySnap = await getDocs(
-  collection(db, "users", uid, "supplierHistory")
-);
-// BUILD ARRAY (IMPORTANT)
-let data = [];
-
-suppliersSnap.forEach(docSnap => {
-
-  const s = docSnap.data();
-
-  let total = 0;
-
-  historySnap.forEach(hDoc => {
-
-    const h = hDoc.data();
-
-    if (h.supplierId === docSnap.id) {
-      total += Number(h.total || 0);
+    if (!auth.currentUser) {
+      alert("Login First");
+      return;
     }
 
-  });
+    const uid = auth.currentUser.uid;
 
-  if (total <= 0) return;
+    document.getElementById("supplierPayrollSection").style.display = "block";
 
-  const text = `${s.name} ${s.location || ""}`.toLowerCase();
+    const list = document.getElementById("supplierPayrollList");
+    const totalBox = document.getElementById("supplierPayrollTotal");
 
-  if (!text.includes(search)) return;
+    list.innerHTML = `<div style="padding:20px;text-align:center;">Loading...</div>`;
 
-  data.push({
-    id: docSnap.id,
-    name: s.name,
-    location: s.location,
-    total
-  });
+    // FILTERS
+    const sort =
+      document.getElementById("payrollSort")?.value || "high";
 
-});
+    const search =
+      document.getElementById("supplierPayrollSearch")?.value
+        .toLowerCase()
+        .trim() || "";
 
-// SORT (🔥 FIX)
-if (sort === "high") {
-data.sort((a, b) => b.total - a.total);
+    const dateFilter = getPayrollDate();
+
+    const now = new Date();
+
+    // Start & End of week
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - now.getDay());
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    // LOAD DATA
+    const suppliersSnap = await getDocs(
+      collection(db, "users", uid, "suppliers")
+    );
+
+    const historySnap = await getDocs(
+      collection(db, "users", uid, "supplierHistory")
+    );
+
+    let data = [];
+
+    suppliersSnap.forEach(docSnap => {
+      
+      
+
+      const s = docSnap.data();
+
+      let total = 0;
+
+      historySnap.forEach(hDoc => {
+
+        const h = hDoc.data();
+
+        if (h.supplierId !== docSnap.id) return;
+
+        const date = h.createdAt?.toDate
+          ? h.createdAt.toDate()
+          : new Date();
+
+        let include = true;
+
+        switch (dateFilter) {
+
+  case "today":
+    include =
+      date.toDateString() === now.toDateString();
+    break;
+
+  case "week":
+    include =
+      date >= weekStart &&
+      date < weekEnd;
+    break;
+
+  case "month":
+    include =
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+    break;
+
+  case "year":
+    include =
+      date.getFullYear() === now.getFullYear();
+    break;
+
+  case "custom":
+
+    const start =
+      document.getElementById("payrollStartDate")?.value;
+
+    const end =
+      document.getElementById("payrollEndDate")?.value;
+
+    if (start && end) {
+
+      const startDate = new Date(start);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(end);
+      endDate.setHours(23, 59, 59, 999);
+
+      include =
+        date >= startDate &&
+        date <= endDate;
+
+    } else {
+
+      include = false;
+
+    }
+
+    break;
+
+  case "all":
+  default:
+    include = true;
+    break;
+
 }
 
-if (sort === "low") {
-data.sort((a, b) => a.total - b.total);
-}
+        if (!include) return;
 
-if (sort === "az") {
-data.sort((a, b) => a.name.localeCompare(b.name));
-}
+        total += Number(h.total || 0);
 
-// CLEAR
-list.innerHTML = "";
+      }); // <-- Funga historySnap.forEach()
 
-let grandTotal = 0;
+      if (total <= 0) return;
 
-if (data.length === 0) {
-list.innerHTML = `<div style="padding:20px;text-align:center;color:#777;">No supplier</div>`;
-totalBox.innerHTML = "";
-return;
-}
+      const text =
+        `${s.name} ${s.location || ""}`.toLowerCase();
 
-// RENDER
-data.forEach(s => {
+      if (!text.includes(search)) return;
+
+      data.push({
+        id: docSnap.id,
+        name: s.name,
+        location: s.location,
+        total
+      });
+
+    }); // <-- Funga suppliersSnap.forEach()
+
+    // SORT
+    if (sort === "high") {
+      data.sort((a, b) => b.total - a.total);
+    } else if (sort === "low") {
+      data.sort((a, b) => a.total - b.total);
+    } else if (sort === "az") {
+      data.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    list.innerHTML = "";
+
+    let grandTotal = 0;
+
+    if (data.length === 0) {
+
+      list.innerHTML = `
+        <div style="
+          padding:20px;
+          text-align:center;
+          color:#777;
+        ">
+          No supplier found
+        </div>
+      `;
+
+      totalBox.innerHTML = "";
+      return;
+    }
+
+    data.forEach(s => {
 
   grandTotal += s.total;
 
@@ -3413,8 +4010,14 @@ data.forEach(s => {
     ">
 
       <div>
-        <div style="font-weight:bold;">🚚 ${s.name}</div>
-        <div style="font-size:13px;color:#777;">
+        <div style="font-weight:bold;">
+          🚚 ${s.name}
+        </div>
+
+        <div style="
+          font-size:13px;
+          color:#777;
+        ">
           📍 ${s.location || "-"}
         </div>
       </div>
@@ -3432,35 +4035,57 @@ data.forEach(s => {
 
 });
 
-// TOTAL
+
+window.currentSupplierPayroll = [...data];
+window.currentSupplierPayrollTotal = grandTotal;
+
 totalBox.innerHTML = `
 <div style="
-background:linear-gradient(135deg,#4CAF50,#2E7D32);
-color:white;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
-text-align:center;
+  background:linear-gradient(135deg,#4CAF50,#2E7D32);
+  color:white;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+  text-align:center;
 ">
-💰 Total Payroll: ${grandTotal.toLocaleString()} BIF
+  💰 Total Payroll: ${grandTotal.toLocaleString()} BIF
 </div>
 `;
+  } catch (err) {
 
-} catch (err) {
-console.log(err);
-alert("Failed");
-}
+    console.error(err);
+    alert(err.message);
+
+  }
 
 };
 
 // LIVE SEARCH
-window.searchSupplierPayroll =
-function(){
-
-openSupplierPayroll();
-
+window.searchSupplierPayroll = function () {
+  openSupplierPayroll();
 };
 
+window.changePayrollFilter = function(){
+
+  const value =
+    document.getElementById("payrollDate").value;
+
+  const custom =
+    document.getElementById("payrollCustomFilter");
+
+  if(value === "custom"){
+
+    custom.style.display = "block";
+
+  }else{
+
+    custom.style.display = "none";
+
+    openSupplierPayroll();
+
+  }
+
+};
 
 window.closeSupplierPayroll =
 function(){
@@ -3472,8 +4097,6 @@ document
 .style.display =
 "none";
 
-
-// SUBIRA AHO WARI URI
 const suppliers =
 document.getElementById(
 "suppliersSection"
@@ -3488,8 +4111,6 @@ suppliers.style.display =
 
 }
 
-
-// CLEAR SEARCH
 const search =
 document.getElementById(
 "supplierPayrollSearch"
@@ -3505,7 +4126,7 @@ search.value =
 }
 
 
-// CLEAR DATA
+
 document.getElementById(
 "supplierPayrollList"
 )
@@ -3533,219 +4154,123 @@ window.closePayrollSettings = function () {
 
 };
 
-// EXPORT REPORT
-window.exportPayroll = function () {
 
-  const text = document.getElementById("supplierPayrollList").innerText;
+window.printSupplierPayroll = function () {
 
-  const blob = new Blob([text], {
-    type: "text/plain"
-  });
+  const data = window.currentSupplierPayroll || [];
+  const totalPayroll = window.currentSupplierPayrollTotal || 0;
 
-  const a = document.createElement("a");
-
-  a.href = URL.createObjectURL(blob);
-
-  a.download = "payroll.txt";
-
-  a.click();
-
-};
-
-
-window.printSupplierPayroll = async function () {
-
-  if (!auth.currentUser) {
-    alert("Login First");
+  if (data.length === 0) {
+    alert("No supplier payroll to print.");
     return;
   }
 
-  const uid = auth.currentUser.uid;
+  let rows = "";
 
-  try {
+  data.forEach(s => {
 
-    const suppliersSnap = await getDocs(
-      collection(db,"users",uid,"suppliers")
-    );
-
-    const historySnap = await getDocs(
-      collection(db,"users",uid,"supplierHistory")
-    );
-
-
-    let totalPayroll = 0;
-    let rows = "";
-
-
-    suppliersSnap.forEach(docSnap => {
-
-      const s = docSnap.data();
-
-      let total = 0;
-
-
-      historySnap.forEach(hDoc => {
-
-        const h = hDoc.data();
-
-        if(h.supplierId === docSnap.id){
-
-          total += Number(h.total || 0);
-
-        }
-
-      });
-
-
-      if(total <= 0) return;
-
-
-      totalPayroll += total;
-
-
-      rows += `
-
+    rows += `
       <tr>
-
-        <td>${s.name || "-"}</td>
-
+        <td>${s.name}</td>
         <td>${s.location || "-"}</td>
-
-        <td>
-        ${total.toLocaleString()} BIF
-        </td>
-
+        <td>${s.total.toLocaleString()} BIF</td>
       </tr>
+    `;
 
-      `;
+  });
 
+  const filter =
+    document.getElementById("payrollDate")?.selectedOptions[0]?.text || "All";
 
-    });
+  const sort =
+    document.getElementById("payrollSort")?.selectedOptions[0]?.text || "";
 
+  const win = window.open("", "_blank");
 
+  win.document.write(`
+<html>
+<head>
+<title>Supplier Payroll</title>
 
-    const win = window.open("","_blank");
+<style>
 
+body{
+font-family:Arial;
+padding:20px;
+}
 
-    win.document.write(`
+h2{
+text-align:center;
+}
 
-    <html>
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
 
-    <head>
+th,td{
+border:1px solid #ccc;
+padding:10px;
+text-align:center;
+}
 
-    <title>Supplier Payroll</title>
+th{
+background:#f2f2f2;
+}
 
-    <style>
+.total{
+margin-top:20px;
+text-align:right;
+font-size:18px;
+font-weight:bold;
+}
 
-    body{
-      font-family:Arial;
-      padding:20px;
-    }
+</style>
 
-    h2{
-      text-align:center;
-    }
+</head>
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:20px;
-    }
+<body>
 
-    th,td{
+<h2>🚚 DukaFlow Supplier Payroll</h2>
 
-      border:1px solid #ccc;
-      padding:10px;
-      text-align:center;
+<p><b>Date:</b> ${new Date().toLocaleDateString()}</p>
 
-    }
+<p><b>Filter:</b> ${filter}</p>
 
-    th{
-      background:#f2f2f2;
-    }
+<p><b>Sort:</b> ${sort}</p>
 
-    .total{
+<table>
 
-      margin-top:20px;
-      text-align:right;
-      font-weight:bold;
-      font-size:18px;
+<tr>
+<th>Supplier</th>
+<th>Location</th>
+<th>Amount</th>
+</tr>
 
-    }
+${rows}
 
-    </style>
+</table>
 
-    </head>
+<div class="total">
+💰 Total Payroll:
+${totalPayroll.toLocaleString()} BIF
+</div>
 
+</body>
+</html>
+`);
 
-    <body>
+  win.document.close();
 
-
-    <h2>
-    🚚 DukaFlow Supplier Payroll
-    </h2>
-
-
-    <p>
-    Date:
-    ${new Date().toLocaleDateString()}
-    </p>
-
-
-    <table>
-
-    <tr>
-
-    <th>Supplier</th>
-    <th>Location</th>
-    <th>Amount</th>
-
-    </tr>
-
-
-    ${rows}
-
-
-    </table>
-
-
-    <div class="total">
-
-    💰 Total Supplier Payroll:
-    ${totalPayroll.toLocaleString()} BIF
-
-    </div>
-
-
-    </body>
-
-    </html>
-
-    `);
-
-
-    win.document.close();
-
-
-    setTimeout(()=>{
-
-      win.focus();
-      win.print();
-
-    },500);
-
-
-  } catch(err){
-
-    console.error(err);
-    alert(err.message);
-
-  }
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 500);
 
 };
- 
 
-// GET SORT OPTION
+
 window.getPayrollSort = function () {
 
   const el = document.getElementById("payrollSort");
@@ -3782,6 +4307,550 @@ loadCustomers();
 window.closeCustomers = function(){
 
 document.getElementById("customersSection").style.display = "none";
+
+};
+
+window.customerDebtData = [];
+
+window.openCustomerDebt = async function(){
+
+if(!auth.currentUser){
+alert("Login First");
+return;
+}
+
+document.getElementById("customerDebtSection").style.display="block";
+
+const box=document.getElementById("customerDebtList");
+
+box.innerHTML="Loading...";
+
+try{
+
+const uid=auth.currentUser.uid;
+
+const snap=await getDocs(
+collection(db,"users",uid,"customerHistory")
+);
+
+let debts={};
+
+let totalDebt = 0;
+
+snap.forEach(d=>{
+
+const h=d.data();
+
+const debt=Number(h.debt || 0);
+
+if(debt>0){
+
+if(!debts[h.customerName]){
+debts[h.customerName]=0;
+}
+
+debts[h.customerName]+=debt;
+
+totalDebt += debt;
+
+}
+
+});
+
+window.customerDebtData = [];
+
+Object.keys(debts).forEach(name=>{
+
+  window.customerDebtData.push({
+    name: name,
+    debt: debts[name]
+  });
+
+});
+
+renderCustomerDebt(window.customerDebtData);
+
+}catch(err){
+
+console.error(err);
+
+alert(err.message);
+
+}
+
+};
+
+window.renderCustomerDebt = function(data){
+
+  const box =
+    document.getElementById("customerDebtList");
+
+  let total = 0;
+  let html = "";
+
+  data.forEach(item=>{
+
+    total += item.debt;
+
+    html += `
+    <div
+    class="debtCard"
+    onclick="openCustomerDebtView('${item.name}')"
+    style="
+    background:white;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+    cursor:pointer;
+    ">
+
+      <b>👤 ${item.name}</b>
+
+      <span style="
+      color:#f44336;
+      font-weight:bold;
+      ">
+      ${item.debt.toLocaleString()} BIF
+      </span>
+
+    </div>
+    `;
+
+  });
+
+  if(!html){
+
+    html = `
+    <div style="
+    text-align:center;
+    padding:20px;
+    color:#777;
+    ">
+    No debts found
+    </div>
+    `;
+
+  }
+
+  box.innerHTML = `
+  <div style="
+  background:#ffebee;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:12px;
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#f44336;
+  ">
+    <span>🧾 Total Debt</span>
+    <span>${total.toLocaleString()} BIF</span>
+  </div>
+
+  ${html}
+  `;
+
+};
+window.loadCustomerDebts = function(){
+
+  const keyword =
+    document.getElementById("customerDebtSearch")
+    .value
+    .toLowerCase()
+    .trim();
+
+  const filtered =
+    window.customerDebtData.filter(c =>
+
+      c.name.toLowerCase().includes(keyword)
+
+    );
+
+  renderCustomerDebt(filtered);
+
+};
+
+
+window.openCustomerDebtView = async function(name){
+
+try{
+
+const uid = auth.currentUser.uid;
+
+const snap = await getDocs(
+collection(db,"users",uid,"customerHistory")
+);
+
+let total = 0;
+let paid = 0;
+let debt = 0;
+
+let html = "";
+
+snap.forEach(d=>{
+
+const h = d.data();
+
+if(h.customerName !== name) return;
+
+if(Number(h.debt || 0) <= 0) return;
+
+total += Number(h.total || 0);
+paid += Number(h.paid || 0);
+debt += Number(h.debt || 0);
+
+const date = h.createdAt
+? h.createdAt.toDate().toLocaleDateString()
+: "-";
+
+html += `
+
+<div
+onclick="openCustomerHistoryView('${d.id}')"
+style="
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.08);
+cursor:pointer;
+">
+
+<div>📅 ${date}</div>
+
+<div style="margin-top:6px;">
+💰 ${Number(h.total).toLocaleString()} BIF
+</div>
+
+<div>
+💵 Paid: ${Number(h.paid).toLocaleString()} BIF
+</div>
+
+<div style="color:#f44336;font-weight:bold;">
+🧾 Debt: ${Number(h.debt).toLocaleString()} BIF
+</div>
+
+</div>
+
+`;
+
+});
+
+document.getElementById("customerDebtList").innerHTML = `
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+">
+
+<button
+onclick="openCustomerDebt()"
+style="
+border:none;
+background:#eee;
+padding:8px 12px;
+border-radius:10px;
+">
+🔙 Back
+</button>
+
+<button
+onclick="openCustomerPaymentHistory('${name}')"
+style="
+border:none;
+background:#E3F2FD;
+color:#1976D2;
+padding:8px 12px;
+border-radius:10px;
+font-weight:bold;
+">
+📜 Payment History
+</button>
+
+</div>
+
+<h2>👤 ${name}</h2>
+
+<div style="
+background:#ffebee;
+padding:12px;
+border-radius:12px;
+margin-bottom:12px;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+gap:15px;
+">
+
+  <!-- LEFT -->
+  <div>
+
+    <div>
+      <b>💰 Total:</b>
+      ${total.toLocaleString()} BIF
+    </div>
+
+    <div style="margin-top:6px;">
+      <b>💵 Paid:</b>
+      ${paid.toLocaleString()} BIF
+    </div>
+
+    <div style="
+    margin-top:6px;
+    color:#f44336;
+    ">
+      <b>🧾 Debt:</b>
+      ${debt.toLocaleString()} BIF
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div style="
+  width:120px;
+  ">
+
+    <input
+    id="debtPayment"
+    type="number"
+    placeholder="Amount"
+    style="
+    width:100%;
+    padding:8px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    box-sizing:border-box;
+    ">
+
+    <button
+    onclick="payCustomerDebt('${name}')"
+    style="
+    width:100%;
+    margin-top:8px;
+    padding:8px;
+    border:none;
+    border-radius:8px;
+    background:#4CAF50;
+    color:white;
+    font-weight:bold;
+    ">
+    💵 Pay
+    </button>
+
+  </div>
+
+</div>
+
+</div>
+
+${html || `
+<div style="text-align:center;padding:20px;color:#777;">
+No unpaid history
+</div>
+`}
+
+`;
+
+}catch(err){
+
+console.error(err);
+alert(err.message);
+
+}
+
+};
+
+window.payCustomerDebt = async function(name){
+
+try{
+
+const input = document.getElementById("debtPayment");
+
+const amount = Number(input?.value || 0);
+
+if(amount<=0){
+alert("Enter payment amount");
+return;
+}
+
+const uid = auth.currentUser.uid;
+
+const snap = await getDocs(
+query(
+collection(db,"users",uid,"customerHistory"),
+where("customerName","==",name)
+)
+);
+
+const docs = snap.docs.sort((a,b)=>{
+
+const da = a.data().createdAt?.toMillis?.() || 0;
+const db = b.data().createdAt?.toMillis?.() || 0;
+
+return da - db;
+
+});
+
+let remaining = amount;
+
+for(const d of docs){
+
+if(remaining<=0) break;
+
+const h = d.data();
+
+let debt = Number(h.debt || 0);
+
+if(debt<=0) continue;
+
+let paid = Number(h.paid || 0);
+
+const pay = Math.min(remaining,debt);
+
+paid += pay;
+debt -= pay;
+remaining -= pay;
+
+await addDoc(
+collection(db,"users",uid,"customerPayments"),
+{
+customerName: name,
+amount: pay,
+createdAt: new Date()
+}
+);
+
+
+await updateDoc(
+doc(db,"users",uid,"customerHistory",d.id),
+{
+paid,
+debt,
+status: debt>0 ? "Unpaid" : "Paid"
+}
+);
+
+}
+
+input.value="";
+
+if(remaining>0){
+
+alert(
+`Payment saved.\nUnused amount: ${remaining.toLocaleString()} BIF`
+);
+
+}else{
+
+alert("Debt paid successfully.");
+
+}
+
+openCustomerDebtView(name);
+
+}catch(err){
+
+console.error(err);
+alert(err.message);
+
+}
+
+};
+
+window.closeCustomerDebt=function(){
+
+document.getElementById("customerDebtSection").style.display="none";
+
+};
+
+window.openCustomerPaymentHistory = async function(name){
+
+try{
+
+const uid = auth.currentUser.uid;
+
+const snap = await getDocs(
+query(
+collection(db,"users",uid,"customerPayments"),
+where("customerName","==",name)
+)
+);
+
+let html = `
+<div style="
+margin-bottom:15px;
+font-size:18px;
+font-weight:bold;
+">
+📜 Payment History
+</div>
+`;
+
+if(snap.empty){
+
+html += `
+<div style="
+text-align:center;
+padding:20px;
+color:#777;
+">
+No payment history
+</div>
+`;
+
+}else{
+
+snap.forEach(d=>{
+
+const p = d.data();
+
+const date = p.createdAt
+? p.createdAt.toDate().toLocaleString()
+: "-";
+
+html += `
+<div style="
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.08);
+">
+
+<div>📅 ${date}</div>
+
+<div style="
+margin-top:6px;
+font-weight:bold;
+color:#4CAF50;
+">
+💵 ${Number(p.amount || 0).toLocaleString()} BIF
+</div>
+
+</div>
+`;
+
+});
+
+}
+
+document.getElementById("customerDebtList").innerHTML = html;
+
+}catch(err){
+
+console.error(err);
+alert(err.message);
+
+}
 
 };
 
@@ -4190,6 +5259,7 @@ window.closeCustomerProfile = function(){
   document.getElementById("customersSection").style.display = "block";
 };
 
+
 window.openCustomerSaleBuilder = async function () {
 
 try {
@@ -4211,7 +5281,6 @@ const box = document.getElementById("customerProductsList");
 
 box.innerHTML = "Loading...";
 
-// 🔥 FIXED PATH
 const snap = await getDocs(
 collection(db, "users", uid, "products")
 );
@@ -4224,7 +5293,6 @@ snap.forEach(docSnap => {
 
   const p = docSnap.data();
 
-  // ❌ Ntugaragaze Raw Materials
   if (p.category === "raw") return;
   found = true;
 
@@ -4300,7 +5368,6 @@ snap.forEach(docSnap => {
 
   const p = docSnap.data();
 
-  // ❌ Ntugaragaze Raw Materials
   if (p.category === "raw") return;
 
   box.innerHTML += `
@@ -4516,16 +5583,36 @@ window.renderCustomerSaleItems = function () {
   }).join("");
 
   html += `
+  <div style="
+    padding:10px;
+    background:#E8F5E9;
+    border-radius:8px;
+    margin-top:10px;
+  ">
+
     <div style="
-      padding:10px;
-      background:#E8F5E9;
-      border-radius:8px;
       font-weight:bold;
       text-align:right;
+      margin-bottom:10px;
     ">
       💰 Total: ${total.toLocaleString()} BIF
     </div>
-  `;
+
+    <input
+      id="customerPaid"
+      type="number"
+      placeholder="💵 Amount Paid"
+      style="
+        width:100%;
+        padding:12px;
+        border:1px solid #ddd;
+        border-radius:8px;
+        box-sizing:border-box;
+      "
+    >
+
+  </div>
+`;
 
   box.innerHTML = html;
 };
@@ -4535,21 +5622,26 @@ window.removeCustomerSaleItem = function (index) {
   renderCustomerSaleItems();
 };
 
+
 window.finishCustomerSale = async function () {
 
-  if (!window.currentCustomer?.id) {
+  if (!window.currentCustomer || !window.currentCustomer.id) {
     alert("No customer selected");
     return;
   }
 
-  if (!customerSaleItems.length) {
+  if (customerSaleItems.length === 0) {
     alert("No items added");
     return;
   }
 
   try {
 
-    const snap = await getDocs(collection(db, "users", auth.currentUser.uid, "products"));
+    const uid = auth.currentUser.uid;
+
+    const snap = await getDocs(
+      collection(db, "users", uid, "products")
+    );
 
     const productsMap = {};
 
@@ -4562,53 +5654,81 @@ window.finishCustomerSale = async function () {
 
     let total = 0;
 
-    for (let item of customerSaleItems) {
+    // CHECK STOCK + UPDATE STOCK
+    for (const item of customerSaleItems) {
 
       const p = productsMap[item.id];
 
       if (!p) continue;
 
-      // stock check
-      if ((p.qty || 0) < item.qty) {
+      if (Number(p.qty || 0) < Number(item.qty || 0)) {
         alert(`${item.product} stock is not enough`);
         return;
       }
 
-      // update stock
-      await updateDoc(doc(db, "users", auth.currentUser.uid, "products", p.id), {
-        qty: (p.qty || 0) - item.qty
-      });
+      await updateDoc(
+        doc(db, "users", uid, "products", p.id),
+        {
+          qty: Number(p.qty || 0) - Number(item.qty || 0)
+        }
+      );
 
-      // ✅ SAFE TOTAL CALC
-      const price = Number(p.sell || 0);
-      const qty = Number(item.qty || 0);
+      total +=
+        Number(p.sell || 0) *
+        Number(item.qty || 0);
 
-      total += price * qty;
     }
 
+    // PAYMENT
+    const paid = Number(
+      document.getElementById("customerPaid")?.value || 0
+    );
+
+    const debt = Math.max(0, total - paid);
+
+    const status =
+      debt > 0 ? "Unpaid" : "Paid";
+
+  
     await addDoc(
-  collection(db, "users", auth.currentUser.uid, "customerHistory"),
-  {
-    customerId: window.currentCustomer.id,
-    customerName: window.currentCustomer.name,
-    items: customerSaleItems,
-    total: Number(total),
-    createdAt: new Date()
-  }
-);
+      collection(db, "users", uid, "customerHistory"),
+      {
+        customerId: window.currentCustomer.id,
+        customerName: window.currentCustomer.name,
+        items: customerSaleItems,
+        total: total,
+        paid: paid,
+        debt: debt,
+        status: status,
+        createdAt: new Date()
+      }
+    );
+
+    // CLEAR
     customerSaleItems = [];
+
+    document.getElementById("customerSaleItemsList").innerHTML = "";
+
+    const input = document.getElementById("customerPaid");
+    if (input) input.value = "";
 
     document.getElementById("customerSaleBuilder").style.display = "none";
 
-    loadCustomers();
+    await loadProducts();
+    await loadCustomers();
+    await updateDashboard();
 
-    alert("Sale Saved Successfully ✔");
+    alert("✅ Sale Saved Successfully");
 
   } catch (err) {
+
     console.error(err);
     alert(err.message);
+
   }
+
 };
+
 
 
 window.openCustomerHistory = async function () {
@@ -4645,64 +5765,85 @@ window.openCustomerHistory = async function () {
 
     snap.forEach(d => {
 
-      const h = d.data();
+  const h = d.data();
 
-      totalSales += Number(h.total || 0);
+  totalSales += Number(h.total || 0);
 
-      // products count inside each sale (if exists)
-      if (Array.isArray(h.items)) {
-        totalProducts += h.items.length;
-      }
+  if (Array.isArray(h.items)) {
+    totalProducts += h.items.length;
+  }
 
-      const value = Number(h.total || 0);
+  const value = Number(h.total || 0);
+  const paid = Number(h.paid || 0);
+  const debt = Number(h.debt || 0);
+  const status = h.status || "Paid";
 
-      const date = h.createdAt
-        ? h.createdAt.toDate().toLocaleDateString()
-        : "-";
+  const date = h.createdAt
+    ? h.createdAt.toDate().toLocaleDateString()
+    : "-";
 
-      html += `
-        <div
-          onclick="openCustomerHistoryView('${d.id}')"
-          style="
-            background:white;
-            padding:10px;
-            border-radius:10px;
-            margin-bottom:8px;
-            box-shadow:0 1px 4px rgba(0,0,0,.08);
-            cursor:pointer;
+  html += `
+    <div
+      onclick="openCustomerHistoryView('${d.id}')"
+      style="
+        background:white;
+        padding:10px;
+        border-radius:10px;
+        margin-bottom:8px;
+        box-shadow:0 1px 4px rgba(0,0,0,.08);
+        cursor:pointer;
+      ">
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+
+        <div>
+
+          <div style="font-size:12px;color:#777;">
+            📅 ${date}
+          </div>
+
+          <div style="font-size:14px;font-weight:bold;color:#2e7d32;">
+            💰 Total: ${value.toLocaleString()} BIF
+          </div>
+
+          <div style="font-size:13px;color:#2196F3;">
+            💵 Paid: ${paid.toLocaleString()} BIF
+          </div>
+
+          <div style="font-size:13px;color:#f44336;">
+            🧾 Debt: ${debt.toLocaleString()} BIF
+          </div>
+
+          <div style="
+            margin-top:4px;
+            font-size:12px;
+            font-weight:bold;
+            color:${status==="Paid" ? "#4CAF50" : "#f44336"};
           ">
-
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-
-            <div>
-              <div style="font-size:12px;color:#777;">
-                📅 ${date}
-              </div>
-
-              <div style="font-size:14px;font-weight:bold;color:#2e7d32;">
-                ${value.toLocaleString()} BIF
-              </div>
-            </div>
-
-            <button
-              onclick="event.stopPropagation();deleteCustomerHistory('${d.id}')"
-              style="
-                width:28px;
-                height:28px;
-                border:none;
-                border-radius:50%;
-                background:#f44336;
-                color:white;
-              ">
-              🗑
-            </button>
-
+            ✅ ${status}
           </div>
 
         </div>
-      `;
-    });
 
+        <button
+          onclick="event.stopPropagation();deleteCustomerHistory('${d.id}')"
+          style="
+            width:28px;
+            height:28px;
+            border:none;
+            border-radius:50%;
+            background:#f44336;
+            color:white;
+          ">
+          🗑
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+});
     if (!html) {
       html = `
         <div style="text-align:center;padding:20px;color:#777;">
@@ -4949,6 +6090,9 @@ return;
 
 const h = snap.data();
 
+const paid = Number(h.paid || 0);
+const debt = Number(h.debt || 0);
+const status = h.status || "Paid";
 let itemsHtml = "";
 
 (h.items || []).forEach(item=>{
@@ -5042,17 +6186,40 @@ ${itemsHtml}
 <div style="
 display:flex;
 justify-content:space-between;
-font-size:18px;
-font-weight:bold;
-color:#2E7D32;
+margin-bottom:8px;
 ">
+<span>💰 Total</span>
+<b>${Number(h.total || 0).toLocaleString()} BIF</b>
+</div>
 
-<span>Total</span>
+<div style="
+display:flex;
+justify-content:space-between;
+margin-bottom:8px;
+color:#2196F3;
+">
+<span>💵 Paid</span>
+<b>${paid.toLocaleString()} BIF</b>
+</div>
 
-<span>
-${Number(h.total).toLocaleString()} BIF
-</span>
+<div style="
+display:flex;
+justify-content:space-between;
+margin-bottom:8px;
+color:#f44336;
+">
+<span>🧾 Debt</span>
+<b>${debt.toLocaleString()} BIF</b>
+</div>
 
+<div style="
+display:flex;
+justify-content:space-between;
+font-weight:bold;
+color:${status==="Paid" ? "#4CAF50" : "#f44336"};
+">
+<span>✅ Status</span>
+<b>${status}</b>
 </div>
 
 </div>
@@ -5222,8 +6389,8 @@ window.saveEmployee = async function () {
       "✅ Employee saved"
     );
 
+  
     await loadEmployees();
-
   }
 
   catch(err){
@@ -5565,17 +6732,24 @@ window.searchEmployees = function () {
 };
 
 
-window.markAbsent = async function (id) {
+window.lastAttendanceEmployee = window.lastAttendanceEmployee || null;
 
-  try {
+window.markAbsent = async function(id){
 
-    if (!auth.currentUser) {
+  try{
+
+    if(!auth.currentUser){
       alert("Login First");
       return;
     }
 
-    const uid =
-      auth.currentUser.uid;
+    // Ntukore attendance kabiri ku employee umwe ukurikirana
+    if(window.lastAttendanceEmployee === id){
+      alert("Please mark another employee before marking this employee again.");
+      return;
+    }
+
+    const uid = auth.currentUser.uid;
 
     const ref = doc(
       db,
@@ -5585,51 +6759,29 @@ window.markAbsent = async function (id) {
       id
     );
 
-    const snap =
-      await getDoc(ref);
+    const snap = await getDoc(ref);
 
-    if (!snap.exists()) {
+    if(!snap.exists()){
       alert("Employee not found");
       return;
     }
 
-    const e =
-      snap.data();
+    const e = snap.data();
 
-    const ok =
-      confirm(
-        `${e.name} is absent?`
-      );
+    const ok = confirm(`${e.name} is absent?`);
 
-    if (!ok) return;
+    if(!ok) return;
 
-    const monthly =
-      Number(
-        e.salary || 0
-      );
+    const penalty = Number(e.salary || 0) / 30;
 
-    const penalty =
-      monthly / 30;
+    await updateDoc(ref,{
 
-    await updateDoc(
-      ref,
-      {
+      absent: Number(e.absent || 0) + 1,
 
-        absent:
-          Number(
-            e.absent || 0
-          ) + 1,
+      monthlyPenalty:
+      Number(e.monthlyPenalty || 0) + penalty
 
-        monthlyPenalty:
-
-          Number(
-            e.monthlyPenalty || 0
-          ) +
-
-          penalty
-
-      }
-    );
+    });
 
     await addDoc(
 
@@ -5643,61 +6795,54 @@ window.markAbsent = async function (id) {
       {
 
         employeeId: id,
-
-        employeeName:
-          e.name,
-
-        date:
-          new Date(),
-
-        status:
-          "absent"
+        employeeName: e.name,
+        date: new Date(),
+        status: "absent"
 
       }
 
     );
 
-    if (
-      typeof showToast ===
-      "function"
-    ) {
+    // Wibuke employee ya nyuma yakorewe attendance
+    window.lastAttendanceEmployee = id;
+
+    if(typeof showToast === "function"){
 
       showToast(
-        `${e.name} marked as ABSENT ❌`,
+        `${e.name} marked ABSENT ❌`,
         "#f44336"
       );
 
     }
 
-  
-
-  }
-
-  catch(err){
+  }catch(err){
 
     console.error(err);
-
-    alert(
-      err.message
-    );
+    alert(err.message);
 
   }
 
 };
 
 
-window.markPresent = async function (id) {
+window.lastAttendanceEmployee = window.lastAttendanceEmployee || null;
 
-  try {
+window.markPresent = async function(id){
 
-    // CHECK LOGIN
-    if (!auth.currentUser) {
+  try{
+
+    if(!auth.currentUser){
       alert("Login First");
       return;
     }
 
-    const uid =
-      auth.currentUser.uid;
+    // Ntukore Present kabiri ku employee umwe ukurikirana
+    if(window.lastAttendanceEmployee === id){
+      alert("Please mark another employee before marking this employee again.");
+      return;
+    }
+
+    const uid = auth.currentUser.uid;
 
     const ref = doc(
       db,
@@ -5707,53 +6852,30 @@ window.markPresent = async function (id) {
       id
     );
 
-    const snap =
-      await getDoc(ref);
+    const snap = await getDoc(ref);
 
-    if (!snap.exists()) {
+    if(!snap.exists()){
       alert("Employee not found");
       return;
     }
 
-    const e =
-      snap.data();
+    const e = snap.data();
 
-    const ok =
-      confirm(
-        `${e.name} is present?`
-      );
+    const ok = confirm(`${e.name} is present?`);
 
-    if (!ok) return;
+    if(!ok) return;
 
-    const daily =
-      Number(
-        e.dailyRate || 0
-      );
+    const daily = Number(e.dailyRate || 0);
 
-    await updateDoc(
-      ref,
-      {
+    await updateDoc(ref,{
 
-        present:
-          Number(
-            e.present || 0
-          ) + 1,
+      present: Number(e.present || 0) + 1,
 
-        daysWorked:
-          Number(
-            e.daysWorked || 0
-          ) + 1,
+      daysWorked: Number(e.daysWorked || 0) + 1,
 
-        earnedDaily:
+      earnedDaily: Number(e.earnedDaily || 0) + daily
 
-          Number(
-            e.earnedDaily || 0
-          ) +
-
-          daily
-
-      }
-    );
+    });
 
     await addDoc(
 
@@ -5766,51 +6888,35 @@ window.markPresent = async function (id) {
 
       {
 
-        employeeId:
-          id,
-
-        employeeName:
-          e.name,
-
-        date:
-          new Date(),
-
-        status:
-          "present"
+        employeeId: id,
+        employeeName: e.name,
+        date: new Date(),
+        status: "present"
 
       }
 
     );
 
-    if (
-      typeof showToast ===
-      "function"
-    ) {
+    // Wibuke employee ya nyuma yakorewe attendance
+    window.lastAttendanceEmployee = id;
+
+    if(typeof showToast === "function"){
 
       showToast(
-        `${e.name} marked as PRESENT ✔`
+        `${e.name} marked as PRESENT ✔`,
+        "#4CAF50"
       );
 
     }
 
-  
-
-  }
-
-  catch(err){
+  }catch(err){
 
     console.error(err);
-
-    alert(
-      err.message
-    );
+    alert(err.message);
 
   }
 
 };
-
-
-
 
 window.deleteEmployee = async function (id) {
 
@@ -6353,9 +7459,8 @@ window.addExpense = async function () {
 
 };
 
-// =========================
-// CLOSE EXPENSE FORM
-// =========================
+
+
 window.closeExpenseForm = function () {
 
   document.getElementById("expenseForm").style.display = "none";
@@ -6385,71 +7490,182 @@ window.loadExpenses = async function () {
     collection(db, "users", uid, "expenses")
   );
 
+  const filter =
+    document.getElementById("expenseFilterType")?.value || "all";
+
+  const search =
+  document.getElementById("expenseSearch")?.value
+  .toLowerCase()
+  .trim() || "";
+  
+  
+  const sort =
+    document.getElementById("expenseFilterSort")?.value || "newest";
+
+  const start =
+    document.getElementById("expenseFilterStart")?.value;
+
+  const end =
+    document.getElementById("expenseFilterEnd")?.value;
+
+  const now = new Date();
+
+  const weekStart = new Date(now);
+  weekStart.setHours(0,0,0,0);
+  weekStart.setDate(now.getDate()-now.getDay());
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate()+7);
+
+  let expenses = [];
+
+  snap.forEach(docSnap=>{
+
+    expenses.push({
+      id:docSnap.id,
+      ...docSnap.data()
+    });
+
+  });
+
+  expenses = expenses.filter(e=>{
+
+    if(
+      search &&
+      !(e.name || "")
+      .toLowerCase()
+      .includes(search)
+    ){
+      return false;
+    }
+
+    const date = e.createdAt?.toDate
+      ? e.createdAt.toDate()
+      : new Date();
+
+    switch(filter){
+
+      case "today":
+        return date.toDateString() === now.toDateString();
+
+      case "week":
+        return date >= weekStart &&
+               date < weekEnd;
+
+      case "month":
+        return date.getMonth() === now.getMonth() &&
+               date.getFullYear() === now.getFullYear();
+
+      case "year":
+        return date.getFullYear() === now.getFullYear();
+
+      case "custom":
+
+        if(!start || !end) return false;
+
+        const s = new Date(start);
+        s.setHours(0,0,0,0);
+
+        const en = new Date(end);
+        en.setHours(23,59,59,999);
+
+        return date >= s && date <= en;
+
+      default:
+        return true;
+
+    }
+
+  });
+
+  switch(sort){
+
+    case "highest":
+      expenses.sort((a,b)=>
+        Number(b.amount)-Number(a.amount));
+      break;
+
+    case "lowest":
+      expenses.sort((a,b)=>
+        Number(a.amount)-Number(b.amount));
+      break;
+
+    case "oldest":
+      expenses.sort((a,b)=>
+        (a.createdAt?.seconds||0)-
+        (b.createdAt?.seconds||0));
+      break;
+
+    default:
+      expenses.sort((a,b)=>
+        (b.createdAt?.seconds||0)-
+        (a.createdAt?.seconds||0));
+
+  }
+
   let total = 0;
   let html = "";
 
-  snap.forEach(docSnap => {
-
-    const e = docSnap.data();
+  expenses.forEach(e=>{
 
     total += Number(e.amount || 0);
 
-    const date = e.createdAt?.toDate
+    const date =
+      e.createdAt?.toDate
       ? e.createdAt.toDate().toLocaleDateString()
       : "";
 
     html += `
-<div
-  class="expenseCard"
-  onclick="openExpenseView('${docSnap.id}')"
-  data-name="${(e.name || "").toLowerCase()}"
-  data-amount="${e.amount}"
-  style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    background:white;
-    padding:12px;
-    margin-bottom:10px;
-    border-radius:10px;
-    cursor:pointer;
-  ">
+<div class="expenseCard"
+onclick="openExpenseView('${e.id}')"
+style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+cursor:pointer;
+">
 
-  <div>
-    <b>${e.name}</b><br>
-    <small>📅 ${date}</small>
-  </div>
+<div>
+<b>${e.name}</b><br>
+<small>📅 ${date}</small>
+</div>
 
-  <div style="
-    color:#f44336;
-    font-weight:bold;
-  ">
-    ${Number(e.amount).toLocaleString()} BIF
-  </div>
+<div style="
+color:#f44336;
+font-weight:bold;
+">
+${Number(e.amount).toLocaleString()} BIF
+</div>
 
 </div>
 `;
+
   });
 
   box.innerHTML = `
-    <div
-      id="totalExpensesCard"
-      style="
-        background:#ffe0e0;
-        color:#b71c1c;
-        padding:12px;
-        margin-bottom:12px;
-        border-radius:10px;
-        text-align:center;
-        font-weight:bold;
-      ">
-      💸 Total Expenses: ${total.toLocaleString()} BIF
-    </div>
+<div
+style="
+background:#ffe0e0;
+color:#b71c1c;
+padding:12px;
+margin-bottom:12px;
+border-radius:10px;
+text-align:center;
+font-weight:bold;
+">
+💸 Total Expenses:
+${total.toLocaleString()} BIF
+</div>
 
-    ${html || "<div style='text-align:center;padding:20px;'>No expenses</div>"}
-  `;
+${html || "<div style='padding:20px;text-align:center;'>No expenses found</div>"}
+`;
 
 };
+
 
 
 window.openExpenseView = async function(id){
@@ -6793,6 +8009,798 @@ window.deleteExpense = async function(id){
 };
 
 
+
+// =========================
+// OPEN EXPENSE SETTINGS
+// =========================
+
+window.openExpenseSettings = function(){
+
+const box = document.getElementById("expenseSettings");
+
+if(box){
+box.style.display="block";
+}
+
+};
+
+
+// =========================
+// CLOSE EXPENSE SETTINGS
+// =========================
+
+window.closeExpenseSettings = function(){
+
+const box = document.getElementById("expenseSettings");
+
+if(box){
+box.style.display="none";
+}
+
+};
+
+
+// ===============================
+// EXPENSE REPORT SYSTEM
+// ===============================
+
+
+window.openExpenseReports = function () {
+
+  const section = document.getElementById("expenseReportSection");
+
+  if (!section) {
+    alert("expenseReportSection not found");
+    return;
+  }
+
+  section.style.display = "block";
+
+  if (typeof loadExpenseReport === "function") {
+    loadExpenseReport();
+  }
+
+};
+
+window.closeExpenseReports = function () {
+  document.getElementById("expenseReportSection").style.display = "none";
+};
+
+
+window.loadExpenseReport = async function(){
+
+try{
+
+if(!auth.currentUser) return;
+
+
+const uid = auth.currentUser.uid;
+
+
+const snap = await getDocs(
+ collection(db,"users",uid,"expenses")
+);
+
+
+
+const filter =
+document.getElementById("expenseReportFilter")?.value || "all";
+
+
+const search =
+document.getElementById("expenseReportSearch")?.value
+.toLowerCase()
+.trim() || "";
+
+
+
+const now = new Date();
+
+
+
+let expenses=[];
+
+
+
+snap.forEach(docSnap=>{
+
+
+const e = docSnap.data();
+
+
+const date =
+e.createdAt?.toDate
+?
+e.createdAt.toDate()
+:
+new Date();
+
+
+
+let include=true;
+
+
+
+switch(filter){
+
+
+case "today":
+
+include =
+date.toDateString()
+===
+now.toDateString();
+
+break;
+
+
+
+case "week":
+
+const weekStart=new Date(now);
+
+weekStart.setDate(
+now.getDate()-now.getDay()
+);
+
+
+include =
+date>=weekStart;
+
+break;
+
+
+
+case "month":
+
+include =
+date.getMonth()===now.getMonth()
+&&
+date.getFullYear()===now.getFullYear();
+
+break;
+
+
+
+case "year":
+
+include =
+date.getFullYear()
+===
+now.getFullYear();
+
+break;
+
+
+
+case "custom":
+
+const start =
+document.getElementById("expenseStartDate")?.value;
+
+
+const end =
+document.getElementById("expenseEndDate")?.value;
+
+
+
+if(start && end){
+
+
+let s=new Date(start);
+s.setHours(0,0,0,0);
+
+
+let en=new Date(end);
+en.setHours(23,59,59,999);
+
+
+
+include =
+date>=s &&
+date<=en;
+
+
+}else{
+
+include=false;
+
+}
+
+break;
+
+
+
+case "all":
+
+default:
+
+include=true;
+
+}
+
+
+
+if(!include)return;
+
+
+
+const text =
+`${e.name||""} ${e.category||""}`
+.toLowerCase();
+
+
+
+if(!text.includes(search))
+return;
+
+
+
+expenses.push({
+
+id:docSnap.id,
+
+name:e.name || "-",
+
+category:e.category || "Other",
+
+amount:Number(e.amount||0),
+
+date
+
+});
+
+
+});
+
+
+
+
+// =================
+// SUMMARY
+// =================
+
+
+let total=0;
+
+let highest=0;
+
+
+
+expenses.forEach(e=>{
+
+total+=e.amount;
+
+
+if(e.amount>highest)
+highest=e.amount;
+
+
+});
+
+
+
+const count=expenses.length;
+
+
+const average =
+count?
+total/count:
+0;
+
+
+
+document.getElementById("reportTotalExpense").innerHTML=
+total.toLocaleString()+" BIF";
+
+
+document.getElementById("reportCount").innerHTML=
+count;
+
+
+document.getElementById("reportAverage").innerHTML=
+average.toLocaleString()+" BIF";
+
+
+document.getElementById("reportHighest").innerHTML=
+highest.toLocaleString()+" BIF";
+
+
+window.currentExpenseReport=expenses;
+
+
+loadExpenseCategories(expenses);
+
+loadExpenseMonthly(expenses);
+
+loadExpenseList(expenses);
+
+loadExpenseBudget(total);
+
+}catch(err){
+
+console.error(err);
+
+alert(err.message);
+
+}
+
+
+};
+
+// ===============================
+// CATEGORY REPORT
+// ===============================
+
+window.loadExpenseCategories = function(expenses){
+
+const box = document.getElementById("expenseCategoryList");
+
+if(!box) return;
+
+if(expenses.length===0){
+
+box.innerHTML="No Data";
+
+return;
+
+}
+
+let categories={};
+
+expenses.forEach(e=>{
+
+categories[e.category]=(categories[e.category]||0)+e.amount;
+
+});
+
+let html="";
+
+Object.keys(categories).forEach(cat=>{
+
+html+=`
+<div style="
+display:flex;
+justify-content:space-between;
+padding:8px 0;
+border-bottom:1px solid #eee;
+font-size:12px;
+">
+
+<span>📂 ${cat}</span>
+
+<b>
+${categories[cat].toLocaleString()} BIF
+</b>
+
+</div>
+`;
+
+});
+
+box.innerHTML=html;
+
+};
+
+
+// ===============================
+// MONTHLY SUMMARY
+// ===============================
+
+window.loadExpenseMonthly = function(expenses){
+
+const box=document.getElementById("expenseMonthlySummary");
+
+if(!box) return;
+
+if(expenses.length===0){
+
+box.innerHTML="No Data";
+
+return;
+
+}
+
+let months={};
+
+expenses.forEach(e=>{
+
+const key=
+e.date.toLocaleString("default",{
+month:"short",
+year:"numeric"
+});
+
+months[key]=(months[key]||0)+e.amount;
+
+});
+
+let html="";
+
+Object.keys(months).forEach(m=>{
+
+html+=`
+
+<div style="
+display:flex;
+justify-content:space-between;
+padding:8px 0;
+border-bottom:1px solid #eee;
+font-size:12px;
+">
+
+<span>📅 ${m}</span>
+
+<b>
+${months[m].toLocaleString()} BIF
+</b>
+
+</div>
+
+`;
+
+});
+
+box.innerHTML=html;
+
+};
+
+
+// ===============================
+// RECENT LIST
+// ===============================
+
+window.loadExpenseList=function(expenses){
+
+const box=document.getElementById("expenseReportList");
+
+if(!box) return;
+
+if(expenses.length===0){
+
+box.innerHTML=`
+<div style="
+padding:20px;
+text-align:center;
+color:#777;
+">
+No expenses
+</div>
+`;
+
+return;
+
+}
+
+expenses.sort((a,b)=>b.date-a.date);
+
+let html="";
+
+expenses.forEach(e=>{
+
+html+=`
+
+<div style="
+background:#fafafa;
+padding:10px;
+margin-bottom:8px;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<div>
+
+<div style="
+font-size:13px;
+font-weight:bold;
+">
+${e.name}
+</div>
+
+<div style="
+font-size:11px;
+color:#777;
+">
+${e.category}
+•
+${e.date.toLocaleDateString()}
+</div>
+
+</div>
+
+<div style="
+color:#f44336;
+font-size:12px;
+font-weight:bold;
+">
+${e.amount.toLocaleString()} BIF
+</div>
+
+</div>
+
+`;
+
+});
+
+box.innerHTML=html;
+
+};
+
+
+
+window.loadExpenseBudget=function(total){
+
+const budget=
+Number(localStorage.getItem("expenseBudget")||0);
+
+const info=
+document.getElementById("expenseBudgetInfo");
+
+const bar=
+document.getElementById("expenseBudgetBar");
+
+if(!info||!bar) return;
+
+if(budget<=0){
+
+info.innerHTML="No Budget";
+
+bar.style.width="0%";
+
+return;
+
+}
+
+const percent=
+Math.min((total/budget)*100,100);
+
+info.innerHTML=`
+${total.toLocaleString()} /
+${budget.toLocaleString()} BIF
+`;
+
+bar.style.width=percent+"%";
+
+if(percent<60){
+
+bar.style.background="#4CAF50";
+
+}else if(percent<90){
+
+bar.style.background="#FF9800";
+
+}else{
+
+bar.style.background="#F44336";
+
+}
+
+};
+
+window.printExpenseReport = function(){
+
+  const content =
+    document.getElementById("expenseReportSection").innerHTML;
+
+  const win = window.open("", "_blank");
+
+  win.document.write(`
+  <html>
+
+  <head>
+
+  <title>Expense Report</title>
+
+  <style>
+
+  body{
+    font-family:Arial;
+    padding:20px;
+  }
+
+  button,input,select{
+    display:none;
+  }
+
+  </style>
+
+  </head>
+
+  <body>
+
+  <h2>Expense Report</h2>
+
+  ${content}
+
+  </body>
+
+  </html>
+  `);
+
+  win.document.close();
+
+  setTimeout(()=>{
+    win.print();
+  },500);
+
+};
+
+window.exportExpenseReport = function(){
+
+  const rows = [];
+
+  rows.push([
+    "Name",
+    "Category",
+    "Amount",
+    "Date"
+  ]);
+
+  window.currentExpenseReport.forEach(e=>{
+
+    rows.push([
+      e.name,
+      e.category,
+      e.amount,
+      e.date
+    ]);
+
+  });
+
+  const csv =
+    rows.map(r=>r.join(",")).join("\n");
+
+  const blob = new Blob(
+    [csv],
+    {type:"text/csv"}
+  );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
+  a.href=url;
+
+  a.download="Expense_Report.csv";
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+};
+
+
+
+
+// =========================
+// BUDGET
+// =========================
+
+window.openExpenseBudget = function(){
+
+alert("💰 Expense Budget coming soon");
+
+};
+
+
+
+// =========================
+// HISTORY
+// =========================
+
+window.openExpenseHistory = function(){
+
+alert("🕒 Expense History coming soon");
+
+};
+
+
+
+// =========================
+// ADVANCED
+// =========================
+
+window.openExpenseAdvanced = function(){
+
+alert("⚙️ Advanced Expense Settings coming soon");
+
+};
+
+
+
+
+
+
+
+// =========================
+// CUSTOM FILTER DATE
+// =========================
+
+window.toggleExpenseCustomDate = function(){
+
+const filter =
+document.getElementById("expenseReportFilter");
+
+
+const custom =
+document.getElementById("expenseCustomDate");
+
+
+if(filter && custom){
+
+if(filter.value==="custom"){
+
+custom.style.display="block";
+
+}else{
+
+custom.style.display="none";
+
+}
+
+}
+
+};
+
+window.openExpenseFilters = function(){
+
+document.getElementById(
+"expenseFiltersSection"
+).style.display = "block";
+
+};
+
+window.closeExpenseFilters = function(){
+
+document.getElementById(
+"expenseFiltersSection"
+).style.display = "none";
+
+};
+
+window.toggleExpenseFilterCustom = function(){
+
+const type =
+document.getElementById("expenseFilterType").value;
+
+document.getElementById(
+"expenseFilterCustom"
+).style.display =
+type === "custom"
+? "block"
+: "none";
+
+};
+
+window.applyExpenseFilters = function(){
+
+
+alert("Filters Applied");
+loadExpenses();
+closeExpenseFilters();
+
+
+};
+
+window.resetExpenseFilters = function(){
+
+document.getElementById("expenseFilterType").value = "all";
+document.getElementById("expenseFilterSort").value = "newest";
+document.getElementById("expenseFilterSearch").value = "";
+document.getElementById("expenseFilterStart").value = "";
+document.getElementById("expenseFilterEnd").value = "";
+
+toggleExpenseFilterCustom();
+
+alert("Filters Reset");
+
+};
+
+
 window.updateNetworkStatus = function () {
 
   const status = document.getElementById("networkStatus");
@@ -6884,7 +8892,6 @@ if(!navigator.onLine){
   }
 
 }
-
 
 
 // ===============================
