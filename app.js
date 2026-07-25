@@ -974,7 +974,7 @@ window.updateDashboard = async function () {
 
       if (!inPeriod(s.createdAt, period)) return;
 
-      supplierPayroll += Number(s.total || 0);
+      supplierPayroll += Number(s.debt || 0);
 
     });
 
@@ -1757,14 +1757,9 @@ async function(){
 
 try{
 
-if(
-!auth.currentUser
-){
+if(!auth.currentUser){
 
-alert(
-"Login First"
-);
-
+alert("Login First");
 return;
 
 }
@@ -1772,42 +1767,41 @@ return;
 const uid =
 auth.currentUser.uid;
 
+
 const name =
 document
-.getElementById(
-"sName"
-)
+.getElementById("sName")
 ?.value
 .trim();
+
 
 const phone =
 document
-.getElementById(
-"sPhone"
-)
+.getElementById("sPhone")
 ?.value
 .trim();
+
 
 const location =
 document
-.getElementById(
-"sLocation"
-)
+.getElementById("sLocation")
 ?.value
 .trim();
 
 
-if(
-!name
-){
 
-alert(
-"Enter supplier name"
-);
+if(!name){
 
+alert("Enter supplier name");
 return;
 
 }
+
+
+// AUTO NUMBER
+const supplierNumber =
+await generateSupplierNumber();
+
 
 
 await addDoc(
@@ -1821,20 +1815,27 @@ uid,
 
 {
 
+supplierNumber,
+
 name,
+
 phone,
+
 location,
-createdAt:
-new Date()
+
+createdAt:new Date()
 
 }
 
 );
 
 
+
 alert(
-"✅ Supplier Saved"
+"✅ Supplier Saved\n"+supplierNumber
 );
+
+
 
 loadSuppliers();
 
@@ -1842,34 +1843,28 @@ loadSuppliers();
 closeAddSupplier();
 
 
-document.getElementById(
-"sName"
-).value="";
 
-document.getElementById(
-"sPhone"
-).value="";
+document.getElementById("sName").value="";
 
-document.getElementById(
-"sLocation"
-).value="";
+document.getElementById("sPhone").value="";
+
+document.getElementById("sLocation").value="";
+
 
 }
+
 catch(e){
 
-console.log(
-e
-);
+console.log(e);
 
 alert(
-"Error: "
-+
-e.message
+"Error: "+e.message
 );
 
 }
 
 };
+
 
 window.searchSuppliers =
 function(){
@@ -1984,7 +1979,7 @@ window.loadSuppliers = async function () {
       return;
     }
 
-    // Save suppliers in array
+
     let suppliers = [];
 
     snap.forEach((doc) => {
@@ -1994,58 +1989,69 @@ window.loadSuppliers = async function () {
       });
     });
 
-    // Sort A-Z
     suppliers.sort((a, b) =>
       (a.name || "").localeCompare(b.name || "", undefined, {
         sensitivity: "base"
       })
     );
-// Show total suppliers
+    
 const total = document.getElementById("supplierTotal");
 
 if (total) {
   total.innerHTML = `🚚 Total Suppliers: ${suppliers.length}`;
 }
 
-    // Display suppliers
     suppliers.forEach((s) => {
 
       list.insertAdjacentHTML(
-        "beforeend",
-        `
-        <div
-        onclick="openSupplierProfile('${s.id}')"
-        style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        padding:14px;
-        margin-top:10px;
-        border-radius:14px;
-        background:white;
-        box-shadow:0 2px 10px rgba(0,0,0,.06);
-        cursor:pointer;
-        ">
+"beforeend",
+`
+<div
+onclick="openSupplierProfile('${s.id}')"
+style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px;
+margin-top:10px;
+border-radius:14px;
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,.06);
+cursor:pointer;
+">
 
-          <div>
-            <div style="
-            font-weight:700;
-            font-size:15px;
-            ">
-            🚚 ${s.name || "-"}
-            </div>
-          </div>
+<div>
 
-          <div style="
-          font-size:13px;
-          color:#777;
-          ">
-          📍 ${s.location || "-"}
-          </div>
+<div style="
+font-size:11px;
+color:#777;
+margin-bottom:3px;
+">
+${s.supplierNumber || "No Number"}
+</div>
 
-        </div>
-        `
-      );
+
+<div style="
+font-weight:700;
+font-size:15px;
+">
+🚚 ${s.name || "-"}
+</div>
+
+</div>
+
+
+<div style="
+font-size:13px;
+color:#777;
+">
+📍 ${s.location || "-"}
+</div>
+
+
+</div>
+`
+);
 
     });
 
@@ -2067,191 +2073,344 @@ if (total) {
 
 };
 
+
+window.generateSupplierNumber = async function(){
+
+  const uid = auth.currentUser.uid;
+
+  const snap = await getDocs(
+    collection(db,"users",uid,"suppliers")
+  );
+
+
+  let maxNumber = 100000;
+
+
+  snap.forEach(docSnap=>{
+
+    const s = docSnap.data();
+
+    const num = Number(s.supplierNumber);
+
+    if(num > maxNumber){
+
+      maxNumber = num;
+
+    }
+
+  });
+
+
+  return String(maxNumber + 1);
+
+};
+
+window.updateOldSupplierNumbers = async function(){
+
+try{
+
+if(!auth.currentUser){
+alert("Login First");
+return;
+}
+
+
+const uid = auth.currentUser.uid;
+
+
+const snap = await getDocs(
+collection(db,"users",uid,"suppliers")
+);
+
+
+let updated = 0;
+
+
+for(const docSnap of snap.docs){
+
+const s = docSnap.data();
+
+
+if(s.supplierNumber){
+continue;
+}
+
+
+const supplierNumber =
+"SUP-" +
+Math.floor(
+100000 +
+Math.random()*900000
+);
+
+
+
+await updateDoc(
+
+doc(
+db,
+"users",
+uid,
+"suppliers",
+docSnap.id
+),
+
+{
+
+supplierNumber:supplierNumber
+
+}
+
+);
+
+
+updated++;
+
+}
+
+
+alert(
+"✅ Updated suppliers: "+updated
+);
+
+
+loadSuppliers();
+
+
+}
+catch(e){
+
+console.error(e);
+
+alert(
+"Error: "+e.message
+);
+
+}
+
+};
 // =========================
 // SUPPLIER PROFILE
 // =========================
 
-window.openSupplierProfile = async function (id) {
+window.openSupplierProfile = async function(id){
 
-  // CHECK LOGIN
-  if (!auth.currentUser) {
+// CHECK LOGIN
+if(!auth.currentUser){
 
-    alert("Login First");
+alert("Login First");
+return;
 
-    return;
+}
 
-  }
 
-  const uid =
-    auth.currentUser.uid;
+const uid = auth.currentUser.uid;
 
-  try {
 
-    const snap =
-      await getDoc(
+try{
 
-        doc(
-          db,
-          "users",
-          uid,
-          "suppliers",
-          id
-        )
 
-      );
+const snap = await getDoc(
 
-    if (!snap.exists()) {
+doc(
+db,
+"users",
+uid,
+"suppliers",
+id
+)
 
-      alert(
-        "Supplier not found"
-      );
+);
 
-      return;
 
-    }
 
-    const s =
-      snap.data();
+if(!snap.exists()){
 
-    currentSupplier = {
+alert("Supplier not found");
+return;
 
-      id,
+}
 
-      ...s
 
-    };
 
-    document
-      .getElementById(
-        "suppliersSection"
-      )
-      .style.display =
-      "none";
+const s = snap.data();
 
-    const profile =
-      document.getElementById(
-        "supplierProfile"
-      );
 
-    profile.style.display =
-      "block";
 
-    profile.innerHTML = `
+currentSupplier = {
+
+id,
+...s
+
+};
+
+
+
+// CLOSE LIST
+document.getElementById(
+"suppliersSection"
+).style.display="none";
+
+
+
+// OPEN PROFILE
+const profile =
+document.getElementById(
+"supplierProfile"
+);
+
+
+profile.style.display="block";
+
+
+
+profile.innerHTML = `
+
 
 <div style="
 max-width:380px;
 margin:auto;
 padding:10px;
 font-family:Arial;
-position:relative;
 ">
 
+
 <!-- TOP BAR -->
+
 <div style="
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:10px;
+margin-bottom:12px;
 ">
 
-  <!-- BACK -->
-  <button
-  onclick="closeSupplierProfile()"
-  style="
-  width:36px;
-  height:36px;
-  border:none;
-  border-radius:50%;
-  background:#f5f5f5;
-  cursor:pointer;
-  font-size:16px;
-  ">
-    🔙
-  </button>
 
-  <!-- EDIT + DELETE -->
-  <div style="
-  display:flex;
-  gap:8px;
-  ">
+<button
+onclick="closeSupplierProfile()"
+style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.12);
+font-size:16px;
+">
+🔙
+</button>
 
-    <button
-    onclick="menuEdit()"
-    style="
-    width:36px;
-    height:36px;
-    border:none;
-    border-radius:50%;
-    background:#4CAF50;
-    color:white;
-    cursor:pointer;
-    ">
-      ✏️
-    </button>
 
-    <button
-    onclick="menuDelete()"
-    style="
-    width:36px;
-    height:36px;
-    border:none;
-    border-radius:50%;
-    background:#f44336;
-    color:white;
-    cursor:pointer;
-    ">
-      🗑
-    </button>
 
-  </div>
-
-</div>
-
-<!-- HEADER -->
 <div style="
-background:#2196F3;
-color:white;
-padding:18px;
-border-radius:12px;
-text-align:center;
-">
-
-<div style="font-size:40px;">🚚</div>
-
-<h3 style="
-margin:8px 0 0;
-font-size:18px;
-">
-${s.name || ""}
-</h3>
-
-</div>
-
-<!-- INFO -->
-<div style="
-margin-top:12px;
 display:flex;
-flex-direction:column;
 gap:8px;
 ">
 
-<div style="
-background:#f5f5f5;
-padding:10px;
-border-radius:10px;
+
+<button
+onclick="menuEdit()"
+style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:#4CAF50;
+color:white;
 ">
+✏️
+</button>
+
+
+
+<button
+onclick="menuDelete()"
+style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:#f44336;
+color:white;
+">
+🗑
+</button>
+
+
+</div>
+
+
+</div>
+
+
+<!-- SUPPLIER CARD -->
+
+<div style="
+background:white;
+padding:14px;
+border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+text-align:center;
+">
+
+
+<div style="
+font-size:12px;
+color:#1565C0;
+font-weight:bold;
+">
+
+🆔 ${s.supplierNumber || "No Number"}
+
+</div>
+
+
+<h3 style="
+margin:6px 0;
+font-size:18px;
+color:#222;
+">
+
+${s.name || "-"}
+
+</h3>
+
+
+<div style="
+font-size:11px;
+color:#777;
+">
+🚚 Supplier
+</div>
+
+
+</div>
+
+
+
+<!-- PHONE -->
+
+
+
 📞 ${s.phone || "No phone"}
+
 </div>
 
-<div style="
-background:#f5f5f5;
-padding:10px;
-border-radius:10px;
-">
+
+
+<!-- LOCATION -->
+
 📍 ${s.location || "No location"}
+
 </div>
 
 </div>
+
+
+
+
+
+
+<!-- ACTION BUTTONS -->
 
 <div style="
 display:flex;
@@ -2259,52 +2418,69 @@ gap:10px;
 margin-top:15px;
 ">
 
-  <button
-  onclick="openSaleBuilder()"
-  style="
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#FF9800;
-  color:white;
-  font-size:13px;
-  font-weight:bold;
-  cursor:pointer;
-  ">
-    💰 New Sale
-  </button>
 
-  <button
-  onclick="openSupplierHistory()"
-  style="
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#673AB7;
-  color:white;
-  font-size:13px;
-  font-weight:bold;
-  cursor:pointer;
-  ">
-    📋 History
-  </button>
+<button
+onclick="openSaleBuilder()"
+style="
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+background:#FF9800;
+color:white;
+font-size:13px;
+font-weight:bold;
+">
+
+💰 New Purchase
+
+</button>
+
+
+
+
+<button
+onclick="openSupplierHistory()"
+style="
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+background:#673AB7;
+color:white;
+font-size:13px;
+font-weight:bold;
+">
+
+📋 History
+
+</button>
+
+
 
 </div>
+
+
+
+</div>
+
+
 `;
 
-  }
 
-  catch (error) {
 
-    console.error(error);
+}
 
-    alert(
-      "Error loading supplier"
-    );
+catch(error){
 
-  }
+console.error(error);
+
+alert(
+"Error loading supplier"
+);
+
+}
+
 
 };
 
@@ -2757,7 +2933,6 @@ alert(
 
 };
 
-
 window.openSaleBuilder = async function () {
 
   if (!auth.currentUser) return;
@@ -2903,76 +3078,128 @@ window.saveSupplierSelectedProducts = function () {
 
 function renderSupplierSaleItems() {
 
-  const box = document.getElementById("supplierSaleItemsList");
+const box = document.getElementById("supplierSaleItemsList");
 
-  if (supplierSaleItems.length === 0) {
 
-    box.innerHTML = `
-      <div style="text-align:center;color:#777;">
-        No items added
-      </div>
-    `;
+if (supplierSaleItems.length === 0) {
 
-    return;
-  }
+box.innerHTML = `
+<div style="
+text-align:center;
+color:#777;
+">
+No items added
+</div>
+`;
 
-  let total = 0;
-  let html = "";
+document.getElementById("supplierPurchaseTotal").innerHTML = "0 BIF";
 
-  supplierSaleItems.forEach((item, index) => {
+return;
 
-    const line = item.qty * item.buy;
-    total += line;
+}
 
-    html += `
-      <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        padding:10px;
-        margin-top:6px;
-        background:#f5f5f5;
-        border-radius:8px;
-      ">
 
-        <div>
-          <b>${item.product}</b><br>
-          ${item.qty} × ${item.buy}
-          = <b>${line.toLocaleString()} BIF</b>
-        </div>
+let total = 0;
+let html = "";
 
-        <button
-          onclick="deleteSupplierSaleItem(${index})"
-          style="
-            border:none;
-            background:#f44336;
-            color:white;
-            width:34px;
-            height:34px;
-            border-radius:50%;
-            cursor:pointer;
-          ">
-          🗑
-        </button>
 
-      </div>
-    `;
+supplierSaleItems.forEach((item,index)=>{
 
-  });
 
-  html += `
-    <div style="
-      margin-top:10px;
-      padding:10px;
-      background:#E8F5E9;
-      border-radius:8px;
-      font-weight:bold;
-    ">
-      🚚 Total: ${total.toLocaleString()} BIF
-    </div>
-  `;
+const line = item.qty * item.buy;
 
-  box.innerHTML = html;
+total += line;
+
+
+html += `
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:10px;
+margin-top:6px;
+background:#f5f5f5;
+border-radius:8px;
+">
+
+
+<div>
+
+<b>${item.product}</b><br>
+
+${item.qty} × ${item.buy.toLocaleString()}
+=
+<b>${line.toLocaleString()} BIF</b>
+
+</div>
+
+
+<button
+onclick="deleteSupplierSaleItem(${index})"
+style="
+border:none;
+background:#f44336;
+color:white;
+width:34px;
+height:34px;
+border-radius:50%;
+">
+
+🗑
+
+</button>
+
+
+</div>
+
+`;
+
+});
+
+
+
+html += `
+
+<!-- PAYMENT -->
+
+<div style="
+background:white;
+margin-top:15px;
+padding:12px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+">
+
+
+
+
+<input
+id="supplierPaid"
+type="number"
+placeholder="💵 Amount Paid"
+style="
+width:100%;
+padding:12px;
+border:none;
+background:#f5f5f5;
+border-radius:10px;
+box-sizing:border-box;
+">
+
+
+</div>
+
+
+`;
+
+
+box.innerHTML = html;
+
+
+document.getElementById("supplierPurchaseTotal").innerHTML =
+total.toLocaleString()+" BIF";
+
 
 }
 
@@ -3033,25 +3260,63 @@ window.finishSupplierSale = async function () {
 
 
     // SAVE ONCE
-    await addDoc(
+    const paid =
+Number(
+document.getElementById("supplierPaid")?.value || 0
+);
 
-      collection(
-        db,
-        "users",
-        uid,
-        "supplierHistory"
-      ),
 
-      {
-        supplierId: currentSupplier.id,
-        supplierName: currentSupplier.name,
-        items: supplierSaleItems,
-        total: total,
-        createdAt: new Date()
-      }
+const debt = total - paid;
 
-    );
 
+
+await addDoc(
+
+collection(
+db,
+"users",
+uid,
+"supplierHistory"
+),
+
+{
+
+supplierId: currentSupplier.id,
+
+supplierNumber:
+currentSupplier.supplierNumber || "",
+
+supplierName:
+currentSupplier.name,
+
+items:
+supplierSaleItems,
+
+
+total:
+
+
+total,
+
+
+paid:
+
+
+paid,
+
+
+debt:
+
+
+debt,
+
+
+createdAt:
+new Date()
+
+}
+
+);
 
 
     // UPDATE STOCK
@@ -3090,19 +3355,33 @@ window.finishSupplierSale = async function () {
     }
 
 
-
     supplierSaleItems = [];
 
 
-    document.getElementById(
-      "supplierSaleItemsList"
-    ).innerHTML="";
+// CLEAR PAYMENT
+const paidInput =
+document.getElementById("supplierPaid");
+
+if(paidInput){
+  paidInput.value="";
+}
 
 
-    document.getElementById(
-      "supplierSaleBuilder"
-    ).style.display="none";
+// CLEAR ITEMS
+const itemsBox =
+document.getElementById("supplierSaleItemsList");
 
+if(itemsBox){
+  itemsBox.innerHTML="";
+}
+
+
+const builder =
+document.getElementById("supplierSaleBuilder");
+
+if(builder){
+  builder.style.display="none";
+}
 
 
     await loadProducts();
@@ -3669,116 +3948,189 @@ alert(
 
 window.openHistoryView = async function(id){
 
-  try{
+try{
 
-    if(!auth.currentUser){
-      alert("Login First");
-      return;
-    }
+if(!auth.currentUser){
+alert("Login First");
+return;
+}
 
-    const uid = auth.currentUser.uid;
+const uid = auth.currentUser.uid;
 
-    const snap = await getDoc(
-      doc(
-        db,
-        "users",
-        uid,
-        "supplierHistory",
-        id
-      )
-    );
+const snap = await getDoc(
+doc(
+db,
+"users",
+uid,
+"supplierHistory",
+id
+)
+);
 
-    if(!snap.exists()){
-      alert("History not found");
-      return;
-    }
+if(!snap.exists()){
+alert("History not found");
+return;
+}
 
-    const h = snap.data();
+const h = snap.data();
 
-    // HIDE HISTORY LIST
-    document.getElementById("supplierHistoryList").style.display = "none";
+document.getElementById("supplierHistoryList").style.display="none";
 
-    let detail = document.getElementById("historyDetail");
+let detail =
+document.getElementById("historyDetail");
 
-    if(!detail){
+if(!detail){
 
-      document.getElementById("supplierHistorySection")
-      .insertAdjacentHTML(
-        "beforeend",
-        `<div id="historyDetail"></div>`
-      );
+document.getElementById(
+"supplierHistorySection"
+).insertAdjacentHTML(
+"beforeend",
+`<div id="historyDetail"></div>`
+);
 
-      detail = document.getElementById("historyDetail");
-    }
+detail =
+document.getElementById("historyDetail");
 
-    detail.style.display = "block";
+}
 
-    const date = h.createdAt?.toDate
-      ? h.createdAt.toDate().toLocaleString()
-      : "-";
+detail.style.display="block";
 
-    detail.innerHTML = `
+const date =
+h.createdAt?.toDate
+?
+h.createdAt.toDate().toLocaleString()
+:
+"-";
 
-      <button
-        onclick="closeHistoryView()"
-        style="
-          width:40px;
-          height:40px;
-          border:none;
-          border-radius:50%;
-          margin-bottom:10px;
-          background:#eee;
-        ">
-        🔙
-      </button>
+detail.innerHTML = `
 
-      <div style="
-        background:white;
-        padding:15px;
-        border-radius:12px;
-        box-shadow:0 2px 8px rgba(0,0,0,.08);
-      ">
+<button
+onclick="closeHistoryView()"
+style="
+width:36px;
+height:36px;
+border:none;
+border-radius:50%;
+background:#f5f5f5;
+margin-bottom:10px;
+">
+🔙
+</button>
 
-        <h3 style="margin-top:0;">
-          📋 Purchase Details
-        </h3>
+<div style="
+background:white;
+padding:15px;
+border-radius:12px;
+">
 
-        <div style="margin-bottom:10px;">
-          📅 ${date}
-        </div>
+<h3 style="
+margin:0 0 15px;
+">
+📋 Purchase Details
+</h3>
 
-        <div style="
-          font-size:18px;
-          font-weight:bold;
-          color:#4CAF50;
-          margin-bottom:15px;
-        ">
-          💰 ${Number(h.total || 0).toLocaleString()} BIF
-        </div>
+<p><b>🆔 Number:</b> ${h.supplierNumber || "-"}</p>
 
-        <hr>
+<p><b>👤 Supplier:</b> ${h.supplierName || "-"}</p>
 
-        ${(h.items || []).map(i => `
-          <div style="
-            padding:10px 0;
-            border-bottom:1px solid #eee;
-          ">
-            <b>📦 ${i.product}</b><br>
-            Qty: ${i.qty}<br>
-            Buy: ${Number(i.buy || 0).toLocaleString()} BIF
-          </div>
-        `).join("")}
+<p><b>📅 Date:</b> ${date}</p>
 
-      </div>
+<p><b>💰 Total:</b>
+${Number(h.total||0).toLocaleString()} BIF
+</p>
 
-    `;
+<p><b>✅ Paid:</b>
+${Number(h.paid||0).toLocaleString()} BIF
+</p>
 
-  }catch(err){
+<p><b>🔴 Debt:</b>
+${Number(h.debt||0).toLocaleString()} BIF
+</p>
 
-    console.error(err);
-    alert("Failed to open history");
+<hr>
 
-  }
+<h4 style="margin-bottom:10px;">
+📦 Products
+</h4>
+
+${(h.items||[]).map(i=>{
+
+const amount =
+Number(i.qty||0) *
+Number(i.buy||0);
+
+return `
+
+<div style="
+padding:10px 0;
+border-bottom:1px solid #eee;
+">
+
+<div style="
+display:flex;
+justify-content:space-between;
+font-weight:bold;
+">
+
+<span>
+${i.product} (${i.qty})
+</span>
+
+<span>
+${amount.toLocaleString()} BIF
+</span>
+
+</div>
+
+<div style="
+font-size:12px;
+color:#666;
+margin-top:3px;
+">
+
+Buy:
+${Number(i.buy||0).toLocaleString()} BIF
+
+</div>
+
+</div>
+
+`;
+
+}).join("")}
+
+<div style="
+margin-top:10px;
+padding-top:10px;
+border-top:2px solid #ddd;
+display:flex;
+justify-content:space-between;
+font-weight:bold;
+">
+
+<span>
+📦 Total
+</span>
+
+<span>
+${(h.items||[])
+.reduce((sum,i)=>
+sum + Number(i.qty||0)*Number(i.buy||0),0)
+.toLocaleString()} BIF
+</span>
+
+</div>
+</div>
+
+`;
+
+}catch(err){
+
+console.error(err);
+
+alert("Failed to open history");
+
+}
 
 };
 
@@ -3944,23 +4296,29 @@ window.openSupplierPayroll = async function () {
 
         if (!include) return;
 
-        total += Number(h.total || 0);
+        total += Number(h.debt || 0);
 
-      }); // <-- Funga historySnap.forEach()
+      }); 
 
       if (total <= 0) return;
 
-      const text =
-        `${s.name} ${s.location || ""}`.toLowerCase();
+      const text = `
+${s.supplierNumber || ""}
+${s.name || ""}
+${s.location || ""}
+`
+.toLowerCase()
+.trim();
 
-      if (!text.includes(search)) return;
+if (search && !text.includes(search)) return;
 
       data.push({
-        id: docSnap.id,
-        name: s.name,
-        location: s.location,
-        total
-      });
+  id: docSnap.id,
+  supplierNumber: s.supplierNumber || "-",
+  name: s.name,
+  location: s.location,
+  total
+});
 
     }); // <-- Funga suppliersSnap.forEach()
 
@@ -3997,47 +4355,70 @@ window.openSupplierPayroll = async function () {
 
   grandTotal += s.total;
 
-  list.insertAdjacentHTML("beforeend", `
-    <div style="
-      background:white;
-      padding:14px;
-      margin-bottom:10px;
-      border-radius:14px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      box-shadow:0 2px 8px rgba(0,0,0,.08);
-    ">
+  list.insertAdjacentHTML("beforeend",`
 
-      <div>
-        <div style="font-weight:bold;">
-          🚚 ${s.name}
-        </div>
+<div style="
+background:white;
+padding:12px;
+margin-bottom:10px;
+border-radius:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+">
 
-        <div style="
-          font-size:13px;
-          color:#777;
-        ">
-          📍 ${s.location || "-"}
-        </div>
-      </div>
+<div>
 
-      <div style="
-        font-size:16px;
-        font-weight:bold;
-        color:#4CAF50;
-      ">
-        ${s.total.toLocaleString()} BIF
-      </div>
+<div style="
+font-size:11px;
+color:#2196F3;
+font-weight:bold;
+margin-bottom:2px;
+">
+🆔 ${s.supplierNumber}
+</div>
 
-    </div>
-  `);
+<div style="
+font-size:15px;
+font-weight:bold;
+">
+🚚 ${s.name}
+</div>
+
+<div style="
+font-size:12px;
+color:#777;
+">
+📍 ${s.location || "-"}
+</div>
+
+</div>
+
+<div style="
+font-size:15px;
+font-weight:bold;
+color:#4CAF50;
+">
+${s.total.toLocaleString()} BIF
+</div>
+
+</div>
+
+`);
 
 });
 
-
+// Save current list for printing
 window.currentSupplierPayroll = [...data];
 window.currentSupplierPayrollTotal = grandTotal;
+
+window.currentSupplierPayrollFilter = {
+  search: search,
+  sort: sort,
+  dateFilter: dateFilter
+};
+
 
 totalBox.innerHTML = `
 <div style="
@@ -4160,6 +4541,8 @@ window.printSupplierPayroll = function () {
   const data = window.currentSupplierPayroll || [];
   const totalPayroll = window.currentSupplierPayrollTotal || 0;
 
+
+
   if (data.length === 0) {
     alert("No supplier payroll to print.");
     return;
@@ -4179,11 +4562,22 @@ window.printSupplierPayroll = function () {
 
   });
 
-  const filter =
-    document.getElementById("payrollDate")?.selectedOptions[0]?.text || "All";
+  const savedFilter = window.currentSupplierPayrollFilter || {};
 
-  const sort =
-    document.getElementById("payrollSort")?.selectedOptions[0]?.text || "";
+const filter = savedFilter.dateFilter || "All";
+
+let sortText = "High Amount";
+
+if(savedFilter.sort === "low"){
+  sortText = "Low Amount";
+}
+
+if(savedFilter.sort === "az"){
+  sortText = "A-Z";
+}
+
+const searchText = savedFilter.search || "";
+
 
   const win = window.open("", "_blank");
 
@@ -4237,9 +4631,8 @@ font-weight:bold;
 <p><b>Date:</b> ${new Date().toLocaleDateString()}</p>
 
 <p><b>Filter:</b> ${filter}</p>
-
-<p><b>Sort:</b> ${sort}</p>
-
+<p><b>Sort:</b> ${sortText}</p>
+<p><b>Search:</b> ${searchText || "None"}</p>
 <table>
 
 <tr>
@@ -4287,8 +4680,6 @@ window.getPayrollDate = function () {
   return el ? el.value : "all";
 
 };
-
-
 
 window.openCustomers = function(){
 
