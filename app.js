@@ -6636,6 +6636,7 @@ document.getElementById("customerHistorySection").style.display = "block";
 
 };
 
+
 // ===============================
 // 👨‍💼 EMPLOYEES
 // ===============================
@@ -7763,6 +7764,7 @@ window.closeEmployeeProfile = function () {
   profile.style.display = "none";
 
 };
+
 
 
 
