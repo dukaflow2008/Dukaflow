@@ -2513,67 +2513,290 @@ overflow:auto;
 <!-- EMPLOYEES -->
 <!-- ========================= -->
 <div id="employeesSection" style="
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#f6f7fb;
-  z-index:9999;
-  overflow:auto;
-  overflow-x:hidden;
-  padding:10px;
-  box-sizing:border-box;
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
+overflow-x:hidden;
+padding:10px;
+box-sizing:border-box;
 ">
 
   <!-- TOP BAR -->
   <div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
   ">
 
-    <button onclick="goDashboard()" style="
-  width:36px;
-  height:36px;
-  border:none;
-  border-radius:50%;
-  background:white;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-  cursor:pointer;
+    <!-- BACK -->
+    <button
+    onclick="goDashboard()"
+    style="
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:12px;
+    background:white;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    cursor:pointer;
+    font-size:18px;
+    ">
+      🔙
+    </button>
+
+    <!-- TITLE -->
+    <h3 style="
+    margin:0;
+    font-size:20px;
+    font-weight:bold;
+    ">
+      👨‍💼 Employees
+    </h3>
+
+    <!-- ACTIONS -->
+    <div style="
+    display:flex;
+    gap:10px;
+    ">
+
+      <!-- SETTINGS -->
+   <button
+onclick="openEmployeeOptions()"
+title="⚙️ Employee Options"
+style="
+width:40px;
+height:40px;
+border:none;
+border-radius:12px;
+background:white;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
+color:#FF9800;
+font-size:18px;
+cursor:pointer;
 ">
-  🔙
+⚙️
 </button>
 
-    <h3 style="margin:0;">👨‍💼 Employees</h3>
-
-    <button onclick="openPayroll()" style="
-      width:36px;
-      height:36px;
+      <!-- PAYROLL -->
+      <button
+      onclick="openPayroll()"
+      style="
+      width:40px;
+      height:40px;
       border:none;
-      border-radius:50%;
-      background:#673AB7;
-      color:white;
-    ">💰</button>
+      border-radius:12px;
+      background:white;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+      color:#673AB7;
+      font-size:18px;
+      cursor:pointer;
+      ">
+        💰
+      </button>
+
+    </div>
 
   </div>
 
   <!-- ADD BUTTON -->
-  <button onclick="openEmployeeForm()" style="
-  display:inline-block;
-  padding:6px 10px;
-  margin-bottom:10px;
+  <button
+  onclick="openEmployeeForm()"
+  style="
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:10px 14px;
+  margin-bottom:15px;
   border:none;
-  border-radius:6px;
+  border-radius:10px;
   background:#2196F3;
   color:white;
-  font-size:13px;
-  width:auto;
+  font-size:14px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(33,150,243,.25);
+  ">
+    ➕ Add Employee
+  </button>
+
+
+
+<!-- ========================= -->
+<!-- EMPLOYEE OPTIONS -->
+<!-- ========================= -->
+
+<div id="employeeOptionsOverlay" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,.25);
+z-index:10000;
+"
+onclick="closeEmployeeOptions()">
+
+  <!-- PANEL -->
+
+  <div id="employeeOptions" style="
+  position:absolute;
+  top:0;
+  right:0;
+  width:50%;
+  
+  background:#f6f7fb;
+  overflow:auto;
+  padding:15px;
+  box-sizing:border-box;
+  font-family:Arial;
+  box-shadow:-4px 0 12px rgba(0,0,0,.15);
+  "
+  onclick="event.stopPropagation()">
+
+    <!-- HEADER -->
+
+    <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    ">
+
+      <h2 style="
+      margin:0;
+      font-size:20px;
+      ">
+        ⚙️ Employee Options
+      </h2>
+
+    </div>
+
+<!-- SORT -->
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:12px;
 ">
-  ➕ Add
-</button>
+
+  <select
+  id="employeeSort"
+  onchange="loadEmployees()"
+  style="
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  ">
+
+    <option value="numberAsc">
+      Number (1 → Last)
+    </option>
+
+    <option value="numberDesc">
+      Number (Last → 1)
+    </option>
+
+    <option value="az">
+      Name A-Z
+    </option>
+
+    <option value="za">
+      Name Z-A
+    </option>
+
+    <option value="salaryHigh">
+      Highest Salary
+    </option>
+
+    <option value="salaryLow">
+      Lowest Salary
+    </option>
+
+  </select>
+
+</div>
+
+    <!-- FILTER -->
+
+    <div style="
+    background:white;
+    padding:14px;
+    border-radius:12px;
+    margin-bottom:12px;
+    ">
+
+
+
+      <select
+      id="employeeTypeFilter"
+      onchange="loadEmployees()"
+      style="
+      width:100%;
+      margin-top:10px;
+      padding:10px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      ">
+
+        <option value="all">
+          All Employees
+        </option>
+
+        <option value="Monthly">
+          Monthly Employees
+        </option>
+
+        <option value="Daily">
+          Daily Employees
+        </option>
+
+      </select>
+
+    </div>
+
+    <!-- PRINT -->
+
+    <div style="
+    background:white;
+    padding:14px;
+    border-radius:12px;
+    ">
+
+
+
+      <button
+      onclick="printEmployees()"
+      style="
+      width:100%;
+      margin-top:10px;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      background:#2196F3;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      ">
+        🖨 Print list 
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
 
   <!-- ADD EMPLOYEE FORM -->
   <div id="employeeForm" style="
@@ -2587,17 +2810,17 @@ overflow:auto;
 
     <h3>➕ Add Employee</h3>
 
-    <input id="employeeName" placeholder="Name" style="width:100%;padding:10px;margin-bottom:8px;">
-    <input id="employeePhone" placeholder="Phone" style="width:100%;padding:10px;margin-bottom:8px;">
-    <input id="employeeRole" placeholder="Role" style="width:100%;padding:10px;margin-bottom:8px;">
+    <input id="employeeName" placeholder="Name" style="width:97%;padding:10px;margin-bottom:8px;">
+    <input id="employeePhone" placeholder="Phone" style="width:97%;padding:10px;margin-bottom:8px;">
+    <input id="employeeRole" placeholder="Role" style="width:97%;padding:10px;margin-bottom:8px;">
 
-    <select id="employeePaymentType" onchange="toggleEmployeePayment()" style="width:100%;padding:10px;margin-bottom:8px;">
+    <select id="employeePaymentType" onchange="toggleEmployeePayment()" style="width:97%;padding:10px;margin-bottom:8px;">
       <option value="Monthly">Monthly</option>
       <option value="Daily">Daily</option>
     </select>
 
-    <input id="employeeSalary" placeholder="Monthly Salary" type="number" style="width:100%;padding:10px;margin-bottom:8px;">
-    <input id="employeeDailyRate" placeholder="Daily Rate" type="number" style="width:100%;padding:10px;margin-bottom:8px;display:none;">
+    <input id="employeeSalary" placeholder="Monthly Salary" type="number" style="width:97%;padding:10px;margin-bottom:8px;">
+    <input id="employeeDailyRate" placeholder="Daily Rate" type="number" style="width:97%;padding:10px;margin-bottom:8px;display:none;">
 
 <div style="
   display:flex;
@@ -2714,38 +2937,52 @@ margin-bottom:12px;
 
 <!-- PAYROLL (separate page) -->
 <div id="payrollSection" style="
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:#f6f7fb;
-  z-index:9999;
-  overflow:auto;
-  padding:12px;
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:99%;
+height:100%;
+background:#f6f7fb;
+z-index:9999;
+overflow:auto;
+padding:12px;
+box-sizing:border-box;
 ">
+  
+<div style="display:flex;justify-content:space-between;align-items:center;">
+  <button onclick="closePayroll()" style="
+    width:34px;
+    height:34px;
+    border:none;
+    border-radius:50%;
+    background:#eee;
+  ">🔙</button>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <button onclick="closePayroll()" style="
+  <h3>💰 employee payll</h3>
+
+  <button
+    onclick="openEmployeeSettings()"
+    style="
       width:34px;
       height:34px;
       border:none;
       border-radius:50%;
       background:#eee;
-    ">🔙</button>
+      font-size:18px;
+      cursor:pointer;
+    ">
+    ⚙️
+  </button>
+</div>
 
-    <h3>💰 Payroll</h3>
-
-    <span></span>
-  </div>
 
 <input
   id="payrollSearch"
   oninput="searchPayroll()"
   placeholder="🔍 Search employee..."
   style="
-    width:100%;
+    width:90%;
     padding:10px;
     margin-bottom:10px;
     border:1px solid #ddd;
@@ -2754,6 +2991,213 @@ margin-bottom:12px;
 >
 
   <div id="payrollList"></div>
+  
+    <!-- EMPLOYEE SETTINGS -->
+  <div id="employeeSettingsOverlay" style="
+  display:none;
+  position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+z-index:10000;
+
+  inset:0;
+  background:rgba(0,0,0,.25);
+  z-index:50;
+  "
+  onclick="closeEmployeeSettings()">
+
+    <div id="employeeSettings" style="
+    position:absolute;
+    top:0;
+    right:0;
+    width:50%;
+    background:#f6f7fb;
+    overflow:auto;
+    padding:15px;
+    box-sizing:border-box;
+    box-shadow:-4px 0 12px rgba(0,0,0,.15);
+    "
+    onclick="event.stopPropagation()">
+
+    <!-- HEADER -->
+
+    <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    ">
+
+      <h2 style="margin:0;">
+        ⚙️ payroll 
+      </h2>
+
+    </div>
+
+<!-- SORT -->
+
+<div style="
+background:white;
+padding:14px;
+border-radius:12px;
+margin-bottom:10px;
+">
+
+<b style="
+font-size:14px;
+">
+📊 Sort Payroll
+</b>
+
+<select
+id="employeePayrollSort"
+onchange="loadPayroll()"
+style="
+width:100%;
+margin-top:10px;
+padding:10px;
+border:1px solid #ddd;
+border-radius:8px;
+background:white;
+">
+
+<option value="numberAsc">
+ Number 1 → last 
+</option>
+
+<option value="numberDesc">
+ Number last → 1
+</option>
+
+<option value="high">
+ Highest Salary
+</option>
+
+<option value="low">
+ Lowest Salary
+</option>
+
+<option value="az">
+ Name A → Z
+</option>
+
+<option value="za">
+ Name Z → A
+</option>
+
+</select>
+
+</div>
+
+    <!-- DATE FILTER -->
+
+    <div style="
+    background:white;
+    padding:14px;
+    border-radius:12px;
+    margin-bottom:10px;
+    ">
+
+      
+
+      <select
+      id="employeePayrollDate"
+      onchange="changeEmployeePayrollFilter()"
+      style="
+      width:100%;
+      margin-top:10px;
+      padding:10px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      ">
+
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+        <option value="all" selected>All</option>
+        <option value="custom">Choose Period</option>
+
+      </select>
+
+      <div id="employeePayrollCustomFilter" style="
+      display:none;
+      margin-top:12px;
+      ">
+
+        <input
+        type="date"
+        id="employeePayrollStartDate"
+        style="
+        width:100%;
+        padding:10px;
+        margin-bottom:10px;
+        border:1px solid #ddd;
+        border-radius:8px;
+        ">
+
+        <input
+        type="date"
+        id="employeePayrollEndDate"
+        style="
+        width:100%;
+        padding:10px;
+        margin-bottom:10px;
+        border:1px solid #ddd;
+        border-radius:8px;
+        ">
+
+        <button
+        onclick="openPayroll()"
+        style="
+        width:100%;
+        padding:12px;
+        border:none;
+        border-radius:10px;
+        background:#4CAF50;
+        color:white;
+        font-weight:bold;
+        ">
+          ✅ Apply Filter
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- PRINT -->
+
+    <div style="
+    background:white;
+    padding:14px;
+    border-radius:12px;
+    ">
+
+    
+
+      <button
+      onclick="printPayroll()"
+      style="
+      width:100%;
+      margin-top:10px;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      background:#2196F3;
+      color:white;
+      font-weight:bold;
+      ">
+        🖨 Print
+      </button>
+
+    </div>
+
+
+  </div>
+
+  </div>
 
 </div>
 <div id="attendanceSection" style="
@@ -2794,6 +3238,9 @@ background:white;
 </div>
 
 <div id="attendanceList"></div>
+
+
+</div>
 
 </div>
 
