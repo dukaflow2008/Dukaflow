@@ -6677,123 +6677,289 @@ window.goDashboard = function () {
 };
 
 
+window.openEmployeeOptions = function () {
+  document.getElementById("employeeOptionsOverlay").style.display = "block";
+};
+
+window.closeEmployeeOptions = function () {
+  document.getElementById("employeeOptionsOverlay").style.display = "none";
+};
+
+// ======================
+// EMPLOYEE FILTER
+// ======================
+
+window.filterEmployees = function () {
+
+  loadEmployees();
+
+};
+
+// ======================
+// PRINT EMPLOYEES
+// ======================
+
+window.printEmployees = function () {
+
+  const list = window.currentEmployees || [];
+
+  if (list.length === 0) {
+    alert("No employees to print.");
+    return;
+  }
+
+  let rows = "";
+
+  list.forEach(emp => {
+
+    rows += `
+      <tr>
+        <td>${emp.name}</td>
+        <td>${emp.paymentType || "-"}</td>
+        <td>${Number(emp.salary || emp.dailyRate || 0).toLocaleString()} BIF</td>
+      </tr>
+    `;
+
+  });
+
+  const sort =
+    document.getElementById("employeeSort")
+      ?.selectedOptions[0]?.text || "";
+
+  const filter =
+    document.getElementById("employeeTypeFilter")
+      ?.selectedOptions[0]?.text || "";
+
+  const win = window.open("", "_blank");
+
+  win.document.write(`
+<html>
+
+<head>
+
+<title>Employees</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:20px;
+}
+
+h2{
+text-align:center;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:10px;
+text-align:center;
+}
+
+th{
+background:#f2f2f2;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>👨‍💼 DukaFlow Employees</h2>
+
+<p><b>Date:</b> ${new Date().toLocaleDateString()}</p>
+
+<p><b>Sort:</b> ${sort}</p>
+
+<p><b>Filter:</b> ${filter}</p>
+
+<table>
+
+<tr>
+<th>Name</th>
+<th>Payment Type</th>
+<th>Salary</th>
+</tr>
+
+${rows}
+
+</table>
+
+</body>
+
+</html>
+`);
+
+  win.document.close();
+
+  setTimeout(() => {
+
+    win.focus();
+    win.print();
+
+  }, 500);
+
+};
+
+
 window.saveEmployee = async function () {
 
-  try {
+try {
 
-    // CHECK LOGIN
-    if (!auth.currentUser) {
-      alert("Login First");
-      return;
-    }
-
-    const uid =
-      auth.currentUser.uid;
-
-    // FIELDS
-    const name =
-      document
-      .getElementById("employeeName")
-      .value
-      .trim();
-
-    const phone =
-      document
-      .getElementById("employeePhone")
-      .value
-      .trim();
-
-    const role =
-      document
-      .getElementById("employeeRole")
-      .value
-      .trim();
-
-    const type =
-      document
-      .getElementById("employeePaymentType")
-      .value;
-
-    const salary =
-      Number(
-        document
-        .getElementById("employeeSalary")
-        .value || 0
-      );
-
-    const daily =
-      Number(
-        document
-        .getElementById("employeeDailyRate")
-        .value || 0
-      );
-
-    // VALIDATION
-    if (!name) {
-      alert("Enter employee name");
-      return;
-    }
-
-    // SAVE
-    await addDoc(
-
-      collection(
-        db,
-        "users",
-        uid,
-        "employees"
-      ),
-
-      {
-        name,
-        phone,
-        role,
-
-        paymentType: type,
-
-        salary:
-          type === "Monthly"
-            ? salary
-            : 0,
-
-        dailyRate:
-          type === "Daily"
-            ? daily
-            : 0,
-
-        daysWorked: 0,
-
-        earnedDaily: 0,
-
-        monthlyBalance:
-          type === "Monthly"
-            ? salary
-            : 0,
-
-        createdAt:
-          new Date()
-
-      }
-
-    );
-
-    alert(
-      "✅ Employee saved"
-    );
-
-  
-    await loadEmployees();
+  // CHECK LOGIN
+  if (!auth.currentUser) {
+    alert("Login First");
+    return;
   }
 
-  catch(err){
+  const uid = auth.currentUser.uid;
 
-    console.error(err);
 
-    alert(
-      err.message
+  // GET EXISTING EMPLOYEES COUNT
+  const employeeSnap = await getDocs(
+    collection(
+      db,
+      "users",
+      uid,
+      "employees"
+    )
+  );
+
+  const employeeNumber =
+    employeeSnap.size + 1;
+
+
+  // FIELDS
+  const name =
+    document
+    .getElementById("employeeName")
+    .value
+    .trim();
+
+  const phone =
+    document
+    .getElementById("employeePhone")
+    .value
+    .trim();
+
+  const role =
+    document
+    .getElementById("employeeRole")
+    .value
+    .trim();
+
+  const type =
+    document
+    .getElementById("employeePaymentType")
+    .value;
+
+
+  const salary =
+    Number(
+      document
+      .getElementById("employeeSalary")
+      .value || 0
     );
 
+
+  const daily =
+    Number(
+      document
+      .getElementById("employeeDailyRate")
+      .value || 0
+    );
+
+
+  // VALIDATION
+  if (!name) {
+    alert("Enter employee name");
+    return;
   }
+
+
+  // SAVE
+  await addDoc(
+
+    collection(
+      db,
+      "users",
+      uid,
+      "employees"
+    ),
+
+    {
+
+      // EMPLOYEE ID
+      employeeNumber,
+
+
+      name,
+      phone,
+      role,
+
+
+      paymentType:type,
+
+
+      salary:
+        type === "Monthly"
+          ? salary
+          : 0,
+
+
+      dailyRate:
+        type === "Daily"
+          ? daily
+          : 0,
+
+
+      daysWorked:0,
+
+
+      earnedDaily:0,
+
+
+      monthlyBalance:
+        type === "Monthly"
+          ? salary
+          : 0,
+
+
+      createdAt:
+        new Date()
+
+    }
+
+  );
+
+
+  alert(
+    `✅ Employee ${employeeNumber} saved`
+  );
+
+
+  await loadEmployees();
+
+
+}
+
+
+catch(err){
+
+  console.error(err);
+
+  alert(
+    err.message
+  );
+
+}
 
 };
 
@@ -6890,187 +7056,211 @@ window.loadEmployees = async function () {
 
   try {
 
-    if (!auth.currentUser) {
-      return;
-    }
+    if (!auth.currentUser) return;
 
-    const uid =
-      auth.currentUser.uid;
+    const uid = auth.currentUser.uid;
 
-    const box =
-      document.getElementById(
-        "employeeList"
-      );
-
+    const box = document.getElementById("employeeList");
     if (!box) return;
 
     box.innerHTML = "";
 
-    const snap =
-      await getDocs(
+    const snap = await getDocs(
+      collection(db, "users", uid, "employees")
+    );
 
-        collection(
-          db,
-          "users",
-          uid,
-          "employees"
-        )
-
-      );
-      
-let employees = [];
-
-snap.forEach(docSnap => {
-  employees.push({
-    id: docSnap.id,
-    ...docSnap.data()
-  });
-});
-
-// SHOW TOTAL
-const totalBox = document.getElementById("employeeTotal");
-if (totalBox) {
-  totalBox.innerHTML = `👨‍💼 Total Employees: ${employees.length}`;
-}
+    let employees = [];
 
     snap.forEach(docSnap => {
 
-      const e =
-        docSnap.data();
+      employees.push({
+        id: docSnap.id,
+        ...docSnap.data()
+      });
+
+    });
+
+    
+const sort =
+  document.getElementById("employeeSort")?.value || "numberAsc";
+
+if (sort === "numberAsc") {
+
+  employees.sort((a, b) =>
+    Number(a.employeeNumber || 0) -
+    Number(b.employeeNumber || 0)
+  );
+
+} else if (sort === "numberDesc") {
+
+  employees.sort((a, b) =>
+    Number(b.employeeNumber || 0) -
+    Number(a.employeeNumber || 0)
+  );
+
+} else if (sort === "az") {
+
+  employees.sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "")
+  );
+
+} else if (sort === "za") {
+
+  employees.sort((a, b) =>
+    (b.name || "").localeCompare(a.name || "")
+  );
+
+} else if (sort === "salaryHigh") {
+
+  employees.sort((a, b) =>
+    Number(b.salary || b.dailyRate || 0) -
+    Number(a.salary || a.dailyRate || 0)
+  );
+
+} else if (sort === "salaryLow") {
+
+  employees.sort((a, b) =>
+    Number(a.salary || a.dailyRate || 0) -
+    Number(b.salary || b.dailyRate || 0)
+  );
+
+}
+    
+
+    const type =
+      document.getElementById("employeeTypeFilter")?.value || "all";
+
+    if (type !== "all") {
+
+      employees = employees.filter(e =>
+        e.paymentType === type
+      );
+
+    }
+
+
+    window.currentEmployees = [...employees];
+
+    const totalBox =
+      document.getElementById("employeeTotal");
+
+    if (totalBox) {
+
+      totalBox.innerHTML =
+        `👨‍💼 Total Employees: ${employees.length}`;
+
+    }
+
+    
+
+    employees.forEach(e => {
 
       box.innerHTML += `
 
+<div
+  class="employeeCard"
+
+  data-name="${(e.name || "").toLowerCase()}"
+
+  data-role="${(e.role || "").toLowerCase()}"
+
+  data-number="${e.employeeNumber || ""}"
+
+  style="
+    padding:8px 0;
+    margin-bottom:4px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    border-bottom:1px solid #eee;
+  "
+>
+
         <div
-          class="employeeCard"
-
-          data-name="${(e.name || "").toLowerCase()}"
-
-          data-role="${(e.role || "").toLowerCase()}"
-
+          onclick="openEmployeeView('${e.id}')"
           style="
-            padding:8px 0;
-            margin-bottom:4px;
+            flex:1;
+            cursor:pointer;
             display:flex;
             justify-content:space-between;
             align-items:center;
-            font-size:13px;
-            border-bottom:1px solid #eee;
-          "
-        >
+          ">
 
-          <!-- NAME -->
-          <div
+          <div>
 
-            onclick="openEmployeeView('${docSnap.id}')"
+            <b style="
+font-size:16px;
+font-weight:600;
+">
+${e.employeeNumber || ""}
+ ${e.name || ""}
+</b>
 
-            style="
-              flex:1;
-              cursor:pointer;
-              display:flex;
-              justify-content:space-between;
-              align-items:center;
-            "
-
-          >
-
-            <div>
-
-              <b style="
-                font-size:16px;
-                font-weight:600;
-              ">
-                ${e.name || ""}
-              </b>
-
-              <div
-                style="
-                  color:#666;
-                  font-size:12px;
-                "
-              >
-                ${e.role || ""}
-              </div>
-
+            <div style="
+              color:#666;
+              font-size:12px;
+            ">
+              ${e.role || ""}
             </div>
-
-          </div>
-
-
-          <!-- ATTENDANCE -->
-          <div
-            style="
-              display:flex;
-              gap:6px;
-            "
-          >
-
-            <button
-
-              onclick="
-                event.stopPropagation();
-                markPresent('${docSnap.id}')
-              "
-
-              style="
-                width:30px;
-                height:30px;
-                border:none;
-                border-radius:50%;
-                background:#4CAF50;
-                color:white;
-              "
-
-            >
-
-              ✔
-
-            </button>
-
-
-            <button
-
-              onclick="
-                event.stopPropagation();
-                markAbsent('${docSnap.id}')
-              "
-
-              style="
-                width:30px;
-                height:30px;
-                border:none;
-                border-radius:50%;
-                background:#f44336;
-                color:white;
-              "
-
-            >
-
-              ✖
-
-            </button>
 
           </div>
 
         </div>
 
+        <div style="
+          display:flex;
+          gap:6px;
+        ">
+
+          <button
+            onclick="
+              event.stopPropagation();
+              markPresent('${e.id}')
+            "
+            style="
+              width:30px;
+              height:30px;
+              border:none;
+              border-radius:50%;
+              background:#4CAF50;
+              color:white;
+            ">
+            ✔
+          </button>
+
+          <button
+            onclick="
+              event.stopPropagation();
+              markAbsent('${e.id}')
+            "
+            style="
+              width:30px;
+              height:30px;
+              border:none;
+              border-radius:50%;
+              background:#f44336;
+              color:white;
+            ">
+            ✖
+          </button>
+
+        </div>
+
+      </div>
+
       `;
 
     });
 
-  }
-
-  catch(err){
+  } catch (err) {
 
     console.error(err);
-
-    alert(
-      err.message
-    );
+    alert(err.message);
 
   }
 
 };
-
 
 
 window.searchEmployees = function () {
@@ -7082,36 +7272,51 @@ window.searchEmployees = function () {
 
   if (!input) return;
 
+
   const search =
     input.value
     .toLowerCase()
     .trim();
+
 
   const cards =
     document.querySelectorAll(
       ".employeeCard"
     );
 
+
   cards.forEach(card => {
+
 
     const name =
       (
-        card.dataset.name ||
-        ""
+        card.dataset.name || ""
       ).toLowerCase();
+
 
     const role =
       (
-        card.dataset.role ||
-        ""
+        card.dataset.role || ""
       ).toLowerCase();
+
+
+    const number =
+      (
+        card.dataset.number || ""
+      ).toLowerCase();
+
+
 
     card.style.display =
 
       (
         name.includes(search) ||
 
-        role.includes(search)
+        role.includes(search) ||
+
+        number.includes(search) ||
+
+        `#${number}`.includes(search)
 
       )
 
@@ -7119,10 +7324,10 @@ window.searchEmployees = function () {
 
       : "none";
 
+
   });
 
 };
-
 
 window.lastAttendanceEmployee = window.lastAttendanceEmployee || null;
 
@@ -7135,7 +7340,7 @@ window.markAbsent = async function(id){
       return;
     }
 
-    // Ntukore attendance kabiri ku employee umwe ukurikirana
+    
     if(window.lastAttendanceEmployee === id){
       alert("Please mark another employee before marking this employee again.");
       return;
@@ -7195,7 +7400,7 @@ window.markAbsent = async function(id){
 
     );
 
-    // Wibuke employee ya nyuma yakorewe attendance
+    
     window.lastAttendanceEmployee = id;
 
     if(typeof showToast === "function"){
@@ -7228,7 +7433,7 @@ window.markPresent = async function(id){
       return;
     }
 
-    // Ntukore Present kabiri ku employee umwe ukurikirana
+    
     if(window.lastAttendanceEmployee === id){
       alert("Please mark another employee before marking this employee again.");
       return;
@@ -7289,7 +7494,7 @@ window.markPresent = async function(id){
 
     );
 
-    // Wibuke employee ya nyuma yakorewe attendance
+    
     window.lastAttendanceEmployee = id;
 
     if(typeof showToast === "function"){
@@ -7426,6 +7631,203 @@ window.closePayroll = function () {
 };
 
 
+window.openEmployeeSettings = function () {
+  document.getElementById("employeeSettingsOverlay").style.display = "block";
+};
+
+window.closeEmployeeSettings = function () {
+  document.getElementById("employeeSettingsOverlay").style.display = "none";
+};
+
+
+// =========================
+// SORT
+// =========================
+window.changeEmployeePayrollSort = function () {
+  openPayroll();
+};
+
+
+// =========================
+// DATE FILTER
+// =========================
+window.changeEmployeePayrollFilter = function () {
+
+  const value =
+    document.getElementById("employeePayrollDate").value;
+
+  document.getElementById(
+    "employeePayrollCustomFilter"
+  ).style.display =
+    value === "custom" ? "block" : "none";
+
+  if (value !== "custom") {
+    openPayroll();
+  }
+
+};
+
+
+// =========================
+// GET DATE FILTER
+// =========================
+window.getEmployeePayrollDate = function () {
+
+  return document.getElementById(
+    "employeePayrollDate"
+  ).value;
+
+};
+
+
+// =========================
+// PRINT
+// =========================
+
+window.printPayroll = function () {
+
+  const data = window.currentPayroll || [];
+
+  if (data.length === 0) {
+    alert("No payroll to print.");
+    return;
+  }
+
+  let totalPayroll = 0;
+  let rows = "";
+
+  data.forEach(e => {
+
+    totalPayroll += Number(e.total || 0);
+
+    rows += `
+      <tr>
+        <td>${e.name}</td>
+        <td>${e.total.toLocaleString()} BIF</td>
+      </tr>
+    `;
+
+  });
+
+  const filter =
+    document.getElementById("employeePayrollDate")
+      ?.selectedOptions[0]?.text || "All";
+
+  const sort =
+    document.getElementById("employeePayrollSort")
+      ?.selectedOptions[0]?.text || "";
+
+  const search =
+    document.getElementById("payrollSearch")
+      ?.value || "None";
+
+  const win = window.open("", "_blank");
+
+  win.document.write(`
+<html>
+
+<head>
+
+<title>Employee Payroll</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:20px;
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:10px;
+text-align:center;
+}
+
+th{
+background:#f2f2f2;
+}
+
+.info{
+margin:6px 0;
+}
+
+.total{
+margin-top:20px;
+text-align:right;
+font-size:18px;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>👤 DukaFlow Employee Payroll</h2>
+
+<div class="info">
+<b>Date:</b>
+${new Date().toLocaleDateString()}
+</div>
+
+<div class="info">
+<b>Filter:</b>
+${filter}
+</div>
+
+<div class="info">
+<b>Sort:</b>
+${sort}
+</div>
+
+<div class="info">
+<b>Search:</b>
+${search}
+</div>
+
+<table>
+
+<tr>
+<th>Employee</th>
+<th>Salary</th>
+</tr>
+
+${rows}
+
+</table>
+
+<div class="total">
+💰 Total Payroll:
+${totalPayroll.toLocaleString()} BIF
+</div>
+
+</body>
+
+</html>
+  `);
+
+  win.document.close();
+
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 500);
+
+};
+
+
 window.loadPayroll = async function () {
 
   if (!auth.currentUser) {
@@ -7439,7 +7841,11 @@ window.loadPayroll = async function () {
   if (!box) return;
 
   box.innerHTML = `
-    <div style="text-align:center;padding:20px;color:#777;">
+    <div style="
+      text-align:center;
+      padding:20px;
+      color:#777;
+    ">
       Loading payroll...
     </div>
   `;
@@ -7450,50 +7856,192 @@ window.loadPayroll = async function () {
       collection(db, "users", uid, "employees")
     );
 
-    let grandTotal = 0;
+    const sort =
+      document.getElementById("employeePayrollSort")?.value || "high";
+
+    const search =
+      document.getElementById("payrollSearch")?.value
+        .toLowerCase()
+        .trim() || "";
+
+    const filter =
+      document.getElementById("employeePayrollDate")?.value || "all";
+
+    const now = new Date();
+
+    const weekStart = new Date(now);
+    weekStart.setHours(0,0,0,0);
+    weekStart.setDate(now.getDate() - now.getDay());
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
     payrollData = [];
 
-    snap.forEach(doc => {
+    snap.forEach(docSnap => {
 
-      const e = doc.data();
+      const e = docSnap.data();
 
       let total = 0;
 
       if (e.paymentType === "Monthly") {
 
-  const salary = Number(e.salary || 0);
-  const absent = Number(e.absent || 0);
+        const salary = Number(e.salary || 0);
+        const absent = Number(e.absent || 0);
 
-  const penalty = salary / 30;
+        total = salary - ((salary / 30) * absent);
 
-  total = salary - (absent * penalty);
+        if (total < 0) total = 0;
 
-  if(total < 0){
-    total = 0;
-  }
+      } else {
 
-} else {
+        total =
+          Number(e.dailyRate || 0) *
+          Number(e.daysWorked || 0);
 
-  total =
-    Number(e.dailyRate || 0) *
-    Number(e.daysWorked || 0);
+      }
 
-}
-      grandTotal += total;
+      const date = e.createdAt?.toDate
+        ? e.createdAt.toDate()
+        : new Date();
+
+      let include = true;
+
+      switch (filter) {
+
+        case "today":
+          include =
+            date.toDateString() === now.toDateString();
+          break;
+
+        case "week":
+          include =
+            date >= weekStart &&
+            date < weekEnd;
+          break;
+
+        case "month":
+          include =
+            date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear();
+          break;
+
+        case "year":
+          include =
+            date.getFullYear() === now.getFullYear();
+          break;
+
+        case "custom":
+
+          const start =
+            document.getElementById("employeePayrollStartDate")?.value;
+
+          const end =
+            document.getElementById("employeePayrollEndDate")?.value;
+
+          if (start && end) {
+
+            const startDate = new Date(start);
+            startDate.setHours(0,0,0,0);
+
+            const endDate = new Date(end);
+            endDate.setHours(23,59,59,999);
+
+            include =
+              date >= startDate &&
+              date <= endDate;
+
+          } else {
+
+            include = false;
+
+          }
+
+          break;
+
+        default:
+          include = true;
+
+      }
+
+      if (!include) return;
+
+      const text =
+  `${e.employeeNumber || ""} ${e.name || ""}`.toLowerCase();
+
+if (
+  !text.includes(search) &&
+  !(`#${e.employeeNumber || ""}`).includes(search)
+) return;
+
 
       payrollData.push({
-        id: doc.id,
-        name: e.name || "",
-        total
-      });
+  id: docSnap.id,
+  employeeNumber: e.employeeNumber || "",
+  name: e.name || "",
+  total
+});
 
     });
+
+    if (sort === "numberAsc") {
+
+  payrollData.sort((a,b)=>
+    Number(a.employeeNumber || 0) -
+    Number(b.employeeNumber || 0)
+  );
+
+} else if (sort === "numberDesc") {
+
+  payrollData.sort((a,b)=>
+    Number(b.employeeNumber || 0) -
+    Number(a.employeeNumber || 0)
+  );
+
+} else if (sort === "high") {
+
+  payrollData.sort((a,b)=>
+    b.total - a.total
+  );
+
+} else if (sort === "low") {
+
+  payrollData.sort((a,b)=>
+    a.total - b.total
+  );
+
+} else if (sort === "az") {
+
+  payrollData.sort((a,b)=>
+    a.name.localeCompare(b.name)
+  );
+
+} else if (sort === "za") {
+
+  payrollData.sort((a,b)=>
+    b.name.localeCompare(a.name)
+  );
+
+}
+
+    let grandTotal = 0;
+
+    payrollData.forEach(e=>{
+      grandTotal += e.total;
+    });
+ 
+ 
+ window.currentPayroll = [...payrollData];
+window.currentPayrollTotal = grandTotal;
+
 
     renderPayroll(payrollData, grandTotal);
 
   } catch (err) {
+
     console.error(err);
     alert(err.message);
+
   }
 
 };
@@ -7501,6 +8049,7 @@ window.loadPayroll = async function () {
 function renderPayroll(list, grandTotal) {
 
   const box = document.getElementById("payrollList");
+
   if (!box) return;
 
   let html = `
@@ -7513,39 +8062,13 @@ function renderPayroll(list, grandTotal) {
       font-weight:bold;
       text-align:center;
     ">
-      💰 Total Payroll: ${grandTotal.toLocaleString()} BIF
+      💰 Total Payroll:
+      ${grandTotal.toLocaleString()} BIF
     </div>
   `;
 
-  list.forEach(e => {
-
-    html += `
-      <div style="
-        background:white;
-        padding:10px;
-        margin-bottom:8px;
-        border-radius:8px;
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        box-shadow:0 1px 4px rgba(0,0,0,.08);
-      ">
-
-        <b>${e.name}</b>
-
-        <span style="
-          color:#4CAF50;
-          font-weight:bold;
-        ">
-          ${e.total.toLocaleString()} BIF
-        </span>
-
-      </div>
-    `;
-
-  });
-
   if (list.length === 0) {
+
     html += `
       <div style="
         text-align:center;
@@ -7555,11 +8078,45 @@ function renderPayroll(list, grandTotal) {
         No employees found
       </div>
     `;
+
+  } else {
+
+    list.forEach(e => {
+
+      html += `
+        <div style="
+          background:white;
+          padding:10px;
+          margin-bottom:8px;
+          border-radius:10px;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          box-shadow:0 2px 6px rgba(0,0,0,.08);
+        ">
+
+         <b>
+  ${e.employeeNumber} ${e.name}
+</b>
+
+          <span style="
+            color:#4CAF50;
+            font-weight:bold;
+          ">
+            ${e.total.toLocaleString()} BIF
+          </span>
+
+        </div>
+      `;
+
+    });
+
   }
 
   box.innerHTML = html;
 
-}
+};
+
 
 
 window.searchPayroll = function () {
@@ -7567,18 +8124,34 @@ window.searchPayroll = function () {
   const input = document.getElementById("payrollSearch");
   if (!input) return;
 
-  const q = input.value.toLowerCase();
+  const q = input.value.toLowerCase().trim();
 
-  const filtered = (payrollData || []).filter(e =>
-    (e.name || "").toLowerCase().includes(q)
-  );
+  const filtered = (payrollData || []).filter(e => {
+
+    const name =
+      (e.name || "").toLowerCase();
+
+    const number =
+      String(e.employeeNumber || "");
+
+    return (
+      name.includes(q) ||
+      number.includes(q) ||
+      (`#${number}`).includes(q)
+    );
+
+  });
 
   const newTotal = filtered.reduce(
     (sum, e) => sum + Number(e.total || 0),
     0
   );
 
+  window.currentPayroll = [...filtered];
+  window.currentPayrollTotal = newTotal;
+
   renderPayroll(filtered, newTotal);
+
 };
 
 
